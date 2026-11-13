@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<!-- ==========================================================
+     首页 index.html — 绿境科技企业官网
+     ----------------------------------------------------------
+     页面作用：品牌首屏 + 核心数据 + 三大产品线 + 优势 + 转化入口
+     依赖文件：
+       css/main.css      全站设计系统（设计令牌/导航/按钮/动效）
+       js/firebase-config.js  Firebase 配置（占位时走演示模式）
+       js/auth.js         认证引擎（登录态渲染 + 注册/登录逻辑）
+       js/particles.js    Canvas 粒子背景
+       js/main.js         交互引擎（导航/转场/滚动显现/计数/倾斜）
+     本页专属样式写在下方的内联 <style> 中，避免污染全站样式表。
+     ========================================================== -->
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<!-- 移动端视口：宽度跟随设备、初始缩放 1，保证响应式栅格按 CSS 像素计算 -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>绿境科技 Verdant GreenTech — 让数据在土地上生长</title>
+<!-- 搜索引擎摘要：控制在 80 字内，覆盖三条业务线关键词 -->
+<meta name="description" content="绿境科技专注智慧农业物联网、分布式光伏管理与企业碳管理 SaaS，用数据驱动绿色增长。">
+
+<!-- ---------- 字体：Google Fonts（中文标题/英文标题/正文/等宽） ---------- -->
+<!-- preconnect 提前建立 DNS/TLS 连接，缩短字体首次加载耗时 -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<!-- ZCOOL XiaoWei=中文标题  Marcellus=英文标题与数字  Noto Sans SC=正文  JetBrains Mono=等宽标签 -->
+<link href="https://fonts.googleapis.com/css2?family=ZCOOL+XiaoWei&family=Marcellus&family=Noto+Sans+SC:wght@300;400;500&family=JetBrains+Mono:wght@300;400&display=swap" rel="stylesheet">
+
+<!-- 全站设计系统：设计令牌、导航、按钮、卡片、动效、页脚等 -->
+<link rel="stylesheet" href="css/main.css">
+
+<style>
+/* ==========================================================
+   首页专属样式（仅本页生效）
+   ========================================================== */
+
+/* ---------- 首屏 Hero 区域 ---------- */
+/* 100svh 取「小视口高度」，避免移动端地址栏收缩导致的内容跳动 */
+.hero { min-height: 100svh; display: flex; flex-direction: column; justify-content: center; position: relative; padding: 120px var(--pad-x) 90px; overflow: hidden; }
+/* 右侧装饰环：绝对定位贴在视口右侧，作为纯装饰不接收鼠标事件 */
+.hero-ring { position: absolute; right: -8vw; top: 50%; transform: translateY(-50%); width: min(56vw, 720px); aspect-ratio: 1; pointer-events: none; opacity: 0.85; }
+.hero-ring svg { width: 100%; height: 100%; }
+/* 两层环反向旋转，形成缓慢的视差转动感 */
+.ring-slow { animation: spin 46s linear infinite; transform-origin: center; }
+.ring-rev { animation: spin 30s linear infinite reverse; transform-origin: center; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* 顶部小标签（AGRI · ENERGY · CARBON），前置一条渐隐横线 */
+.hero-eyebrow { display: inline-flex; align-items: center; gap: 14px; font-family: var(--f-mono); font-size: 0.76rem; letter-spacing: 0.46em; color: var(--g1); margin-bottom: 26px; }
+.hero-eyebrow::before { content: ''; width: 34px; height: 1px; background: var(--g1); box-shadow: 0 0 8px var(--g1); }
+
+/* 主标题：clamp 让字号在 2.8rem–6.8rem 间随视口平滑缩放 */
+.hero h1 { font-family: var(--f-disp); font-weight: 400; font-size: clamp(2.8rem, 8.8vw, 6.8rem); line-height: 1.16; letter-spacing: 0.06em; }
+/* 高亮词：渐变文字 + 背景位移动画，营造「流动的绿光」；200% 背景宽度用于横向流动 */
+.hero h1 .hl { color: transparent; background: linear-gradient(105deg, var(--g2) 5%, var(--g1) 45%, var(--cyan) 90%); background-size: 200% 100%; -webkit-background-clip: text; background-clip: text; animation: hlFlow 6s ease-in-out infinite alternate; }
+@keyframes hlFlow { to { background-position: 100% 0; } }
+
+/* 副标题限制行宽（约 32 汉字/行），保证阅读舒适度 */
+.hero-sub { max-width: 560px; color: var(--ink-2); margin-top: 30px; font-size: clamp(0.95rem, 1.5vw, 1.08rem); }
+.hero-cta { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 44px; }
+
+/* ---------- 浮动数据胶囊（仅桌面显示，随屏幕宽度隐藏） ---------- */
+.hero-chips { position: absolute; right: calc(var(--pad-x) + 2vw); top: 24%; display: flex; flex-direction: column; gap: 16px; z-index: 1; }
+/* 玻璃拟态胶囊：半透明底 + 高斯模糊 + 投影，营造层级悬浮感 */
+.chip { padding: 14px 22px; border-radius: 16px; border: 1px solid var(--line); background: var(--glass); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); font-family: var(--f-mono); font-size: 0.72rem; letter-spacing: 0.18em; color: var(--ink-2); display: flex; align-items: center; gap: 12px; animation: chipFloat 7s ease-in-out infinite alternate; box-shadow: 0 14px 40px rgba(0,0,0,.35); }
+.chip b { color: var(--g2); font-weight: 400; font-size: 0.95rem; }
+/* 状态小圆点：绿色发光，暗示「在线/实时」 */
+.chip i { width: 8px; height: 8px; border-radius: 50%; background: var(--g1); box-shadow: 0 0 10px var(--g1); font-style: normal; }
+/* 用负延迟错开三枚胶囊的浮动相位，避免整齐划一的机械感 */
+.chip:nth-child(2) { animation-delay: -2.4s; }
+.chip:nth-child(3) { animation-delay: -4.8s; }
+@keyframes chipFloat { from { transform: translateY(0); } to { transform: translateY(-16px); } }
+
+/* ---------- 向下滚动提示 ---------- */
+.scroll-cue { position: absolute; bottom: 34px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 10px; font-family: var(--f-mono); font-size: 0.66rem; letter-spacing: 0.42em; color: var(--ink-3); }
+/* 竖线内一段高光自上而下循环下落，提示「可向下滚动」 */
+.scroll-cue .line { width: 1px; height: 52px; background: linear-gradient(180deg, var(--g1), transparent); position: relative; overflow: hidden; }
+.scroll-cue .line::after { content: ''; position: absolute; top: -60%; left: 0; width: 100%; height: 60%; background: linear-gradient(180deg, transparent, var(--g2)); animation: cueDrop 2.1s var(--ease-io) infinite; }
+@keyframes cueDrop { to { top: 110%; } }
+
+/* ---------- KPI 数据条 ---------- */
+/* 四等分栅格 + 上下细线，形成横向数据带 */
+.kpi-strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); background: rgba(6,22,15,.5); }
+.kpi { padding: 34px 26px; text-align: center; border-right: 1px solid var(--line); }
+.kpi:last-child { border-right: 0; }
+/* .num 由 main.js 负责数字滚动；这里定义字体与颜色 */
+.kpi .v { font-family: var(--f-en); font-size: clamp(1.7rem, 3.2vw, 2.6rem); color: var(--g2); display: block; }
+.kpi .v small { font-size: .55em; color: var(--ink-3); }
+.kpi .l { font-size: 0.82rem; letter-spacing: 0.16em; color: var(--ink-2); margin-top: 8px; }
+
+/* ---------- 产品卡三列布局 ---------- */
+.products { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
+.prod { display: flex; flex-direction: column; }
+/* 卡片顶部视觉区：固定 200px 高，居中放置 SVG 图标 */
+.prod .pv { height: 200px; position: relative; overflow: hidden; border-bottom: 1px solid var(--line); display: grid; place-items: center; }
+/* 图标背后的发光光晕，呼吸式缩放 */
+.prod .halo { position: absolute; width: 170px; height: 170px; border-radius: 50%; filter: blur(6px); animation: haloPulse 5s ease-in-out infinite alternate; }
+@keyframes haloPulse { from { transform: scale(.9); opacity: .7; } to { transform: scale(1.12); opacity: 1; } }
+.prod .pv svg { position: relative; width: 96px; height: 96px; z-index: 1; transition: transform .6s var(--ease-out); }
+/* 悬停时图标轻微放大并旋转，给出「可点击」的反馈 */
+.prod:hover .pv svg { transform: scale(1.1) rotate(5deg); }
+/* 三条产品线各自的主题底色：灵耕=绿、光合=金、碳衡=青 */
+.pv.ling { background: radial-gradient(circle at 50% 60%, rgba(45,216,122,.22), transparent 60%), linear-gradient(180deg, #06251a, #04130c); }
+.pv.guang { background: radial-gradient(circle at 50% 60%, rgba(240,200,116,.18), transparent 60%), linear-gradient(180deg, #0a2416, #04130c); }
+.pv.tan { background: radial-gradient(circle at 50% 60%, rgba(81,216,200,.2), transparent 60%), linear-gradient(180deg, #052018, #04130c); }
+
+/* 卡片文字区：flex 纵向排列，让「了解详情」始终贴底对齐 */
+.pbody { padding: 24px 28px 28px; display: flex; flex-direction: column; gap: 10px; flex: 1; }
+.ptag { font-family: var(--f-mono); font-size: 0.64rem; letter-spacing: 0.3em; color: var(--g1); border: 1px solid var(--line-strong); border-radius: 999px; padding: 4px 12px; width: fit-content; }
+.pbody h3 { font-family: var(--f-disp); font-weight: 400; font-size: 1.35rem; letter-spacing: 0.1em; }
+/* flex:1 作用于描述文字，把后续链接推到卡片底部 */
+.pbody p { color: var(--ink-2); font-size: 0.88rem; flex: 1; }
+/* 「了解详情」：悬停时箭头与文字间距拉大，形成右移暗示 */
+.plink { display: inline-flex; align-items: center; gap: 8px; margin-top: 8px; font-family: var(--f-mono); font-size: 0.72rem; letter-spacing: 0.24em; color: var(--g2); width: fit-content; transition: gap .3s var(--ease-out); }
+.plink:hover { gap: 14px; color: #fff; }
+
+/* ---------- 底部转化横幅（CTA） ---------- */
+.cta-banner { position: relative; text-align: center; padding: clamp(64px, 8vw, 110px) var(--pad-x); border: 1px solid var(--line); border-radius: var(--r-lg); background: radial-gradient(ellipse 70% 90% at 50% 120%, rgba(45,216,122,.16), transparent), linear-gradient(180deg, rgba(8,30,20,.4), rgba(4,15,10,.8)); overflow: hidden; }
+.cta-banner h2 { font-family: var(--f-disp); font-weight: 400; font-size: clamp(1.8rem, 4.4vw, 3.2rem); letter-spacing: 0.1em; }
+.cta-banner p { color: var(--ink-2); margin: 16px auto 36px; max-width: 520px; }
+/* 横幅底部一条发光细线，作为视觉收口 */
+.cta-banner .glow-line { position: absolute; bottom: 0; left: 20%; right: 20%; height: 1px; background: linear-gradient(90deg, transparent, var(--g1), transparent); box-shadow: 0 0 22px var(--g1); }
+
+/* ---------- 首页响应式断点 ---------- */
+/* 平板：产品由三列变两列；浮动胶囊隐藏（空间不足）；数据条两列并修正分隔线 */
+@media (max-width: 1024px) { .products { grid-template-columns: repeat(2, 1fr); } .hero-chips { display: none; } .kpi-strip { grid-template-columns: repeat(2, 1fr); } .kpi:nth-child(2) { border-right: 0; } .kpi:nth-child(1), .kpi:nth-child(2) { border-bottom: 1px solid var(--line); } }
+/* 手机：产品单列，首屏顶部留白减小以露出更多内容 */
+@media (max-width: 640px) { .products { grid-template-columns: 1fr; } .hero { padding-top: 110px; } .kpi-strip { grid-template-columns: 1fr 1fr; } }
+</style>
+</head>
+
+<!-- data-page="home"   → main.js 据此高亮导航「首页」
+     data-particles="spores" → particles.js 使用「浮游孢子」粒子模式 -->
+<body data-page="home" data-particles="spores">
+
+<!-- ==========================================================
+     顶部导航（全站共用结构）
+     · 滚动超过 40px 时由 main.js 添加 .is-scrolled（毛玻璃吸顶）
+     · #authArea 由 main.js 根据登录态渲染「登录/免费试用」或用户头像
+     · #burger + #mobileMenu 组成移动端全屏菜单
+     ========================================================== -->
+<header class="nav" id="nav">
+  <!-- 品牌区：SVG 叶形徽标 + 中英文字号组合 -->
+  <a class="brand" href="index.html">
+    <svg class="brand-mark" viewBox="0 0 40 40" fill="none">
+      <!-- 45° 旋转的圆角方形外框（钻石轮廓） -->
+      <rect x="9" y="9" width="22" height="22" rx="5" transform="rotate(45 20 20)" stroke="#2dd87a" stroke-width="1.5"/>
+      <!-- 叶片主体 + 中脉 -->
+      <path d="M20 11c-4.4 4.4-6.6 8-6.6 11.2a6.6 6.6 0 0 0 13.2 0C26.6 19 24.4 15.4 20 11Z" fill="rgba(45,216,122,.22)" stroke="#7af0b8" stroke-width="1.2"/>
+      <path d="M20 14.5V24" stroke="#7af0b8" stroke-width="1.1" stroke-linecap="round"/>
+    </svg>
+    <span class="brand-name">绿境科技<i>VERDANT GREENTECH</i></span>
+  </a>
+
+  <!-- 桌面端主导航：data-nav 的值与 body[data-page] 对应，用于高亮当前页 -->
+  <nav class="nav-links">
+    <a href="index.html" data-nav="home">首页</a>
+    <a href="products.html" data-nav="products">产品方案</a>
+    <a href="lab.html" data-nav="lab">碳计算器</a>
+    <a href="about.html" data-nav="about">关于我们</a>
+    <a href="contact.html" data-nav="contact">联系我们</a>
+  </nav>
+
+  <div class="nav-right">
+    <!-- 登录态容器（空占位，由 main.js 的 renderAuthArea() 填充） -->
+    <div class="nav-auth" id="authArea"></div>
+    <!-- 汉堡按钮：aria-expanded 由 JS 同步，供读屏软件播报展开状态 -->
+    <button class="nav-burger" id="burger" aria-label="打开菜单" aria-expanded="false"><span></span><span></span><span></span></button>
+  </div>
+
+  <!-- 移动端全屏菜单：<em> 为英文副标题，纯装饰 -->
+  <div class="mobile-menu" id="mobileMenu">
+    <a href="index.html">首页<em>HOME</em></a>
+    <a href="products.html">产品<em>PRODUCTS</em></a>
+    <a href="lab.html">碳计算器<em>CARBON</em></a>
+    <a href="about.html">关于<em>ABOUT</em></a>
+    <a href="contact.html">联系<em>CONTACT</em></a>
+    <!-- data-auth：登录后由 main.js 替换为「个人中心 → profile.html」 -->
+    <a href="login.html" data-auth>登录<em>LOGIN</em></a>
+  </div>
+</header>
+
+<!-- 内容外壳：z-index 位于粒子背景之上；page-enter 负责进场淡入 -->
+<div class="page-shell page-enter">
+
+  <!-- ==========================================================
+       首屏 Hero
+       ========================================================== -->
+  <section class="hero">
+    <!-- 右侧旋转装饰环（aria 隐藏的非语义元素） -->
+    <div class="hero-ring" data-hero-fade style="--d:1.5s">
+      <svg viewBox="0 0 400 400" fill="none">
+        <!-- 外圈虚线环（顺时针慢转） -->
+        <g class="ring-slow" opacity=".5">
+          <circle cx="200" cy="200" r="188" stroke="rgba(122,240,184,.22)" stroke-width="1" stroke-dasharray="3 10"/>
+        </g>
+        <!-- 两条椭圆轨道（逆时针转），构成类似经纬线的立体感 -->
+        <g class="ring-rev" opacity=".7">
+          <ellipse cx="200" cy="200" rx="150" ry="58" stroke="rgba(81,216,200,.3)" stroke-width="1"/>
+          <ellipse cx="200" cy="200" rx="58" ry="150" stroke="rgba(45,216,122,.3)" stroke-width="1" stroke-dasharray="2 8"/>
+        </g>
+        <!-- 中心大叶片：与品牌标识同构，强化记忆点 -->
+        <g class="ring-slow">
+          <path d="M200 118c-36 36-54 64-54 88a54 54 0 0 0 108 0c0-24-18-52-54-88Z" fill="rgba(45,216,122,.1)" stroke="#2dd87a" stroke-width="1.4"/>
+          <path d="M200 134v112M200 174l28-20M200 202l-26-20M200 228l22-17" stroke="#7af0b8" stroke-width="1.3" stroke-linecap="round"/>
+        </g>
+      </svg>
+    </div>
+
+    <!-- 浮动数据胶囊：aria-hidden 因为仅为装饰性重复信息，避免读屏重复播报 -->
+    <div class="hero-chips" aria-hidden="true">
+      <div class="chip"><i></i>服务农户 <b>12,000+</b></div>
+      <div class="chip"><i style="background:var(--gold);box-shadow:0 0 10px var(--gold)"></i>光伏装机 <b>320 MW</b></div>
+      <div class="chip"><i style="background:var(--cyan);box-shadow:0 0 10px var(--cyan)"></i>覆盖耕地 <b>86 万亩</b></div>
+    </div>
+
+    <!-- 顶部标签：data-hero-fade + d 延迟变量控制进场延迟（秒） -->
+    <p class="hero-eyebrow" data-hero-fade style="--d:.9s">AGRI · ENERGY · CARBON</p>
+
+    <!-- 主标题：.split 让 main.js 逐字拆分；.hero-split 让首屏标题在 body.loaded 后播放 -->
+    <h1 class="split hero-split">让数据，<br><span class="hl">在土地上生长</span></h1>
+
+    <p class="hero-sub" data-hero-fade style="--d:1.35s">绿境科技以物联网传感器、分布式能源管理与碳核算引擎为核心，为农业、能源与企业客户提供可落地的绿色数字化解决方案。</p>
+
+    <div class="hero-cta" data-hero-fade style="--d:1.55s">
+      <!-- data-magnetic：按钮跟随鼠标产生磁吸位移，参数为位移系数 -->
+      <a class="btn btn-primary" data-magnetic="0.25" href="products.html">查看产品方案
+        <!-- 箭头图标：stroke=currentColor 继承按钮文字色，随主题变化 -->
+        <svg viewBox="0 0 16 16" fill="none"><path d="M2 8h11m-4-4.5L13.5 8 9 12.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </a>
+      <a class="btn btn-ghost" data-magnetic="0.25" href="lab.html">碳足迹计算器</a>
+    </div>
+
+    <!-- 向下滚动提示（纯视觉引导） -->
+    <div class="scroll-cue" data-hero-fade style="--d:1.9s"><span>SCROLL</span><span class="line"></span></div>
+  </section>
+
+  <!-- ==========================================================
+       KPI 数据条
+       data-count  = 计数目标值（滚动进入视口后由 main.js 从 0 滚动到该值）
+       data-suffix = 数字后缀（单位/加号），避免与数字一起参与动画
+       ========================================================== -->
+  <div class="kpi-strip">
+    <div class="kpi"><span class="v num" data-count="12000" data-suffix="+">0</span><span class="l">服务农户</span></div>
+    <div class="kpi"><span class="v num" data-count="86" data-suffix=" 万亩">0</span><span class="l">监测耕地面积</span></div>
+    <div class="kpi"><span class="v num" data-count="320" data-suffix=" MW">0</span><span class="l">光伏装机容量</span></div>
+    <div class="kpi"><span class="v num" data-count="480" data-suffix="+">0</span><span class="l">服务企业客户</span></div>
+  </div>
+
+  <!-- ==========================================================
+       核心产品：三条产品线（灵耕 / 光合 / 碳衡）
+       ========================================================== -->
+  <section class="sec">
+    <!-- 区块标题：data-reveal 让整块在进入视口时淡入上升 -->
+    <div class="sec-head" data-reveal>
+      <span class="sec-no">01 / PRODUCTS</span>
+      <!-- .split 逐字入场；.hl 为渐变高亮词 -->
+      <h2 class="sec-title split">核心<span class="hl">产品方案</span></h2>
+      <!-- 背景描边英文水印（装饰） -->
+      <span class="sec-en">PRODUCTS</span>
+      <p class="sec-desc">三条产品线覆盖「感知—能源—核算」全链路，帮助客户在真实场景中实现降本、增效与减碳。</p>
+    </div>
+
+    <div class="products">
+      <!-- 产品一：灵耕（整卡可点击，跳转至产品页锚点） -->
+      <a class="card prod" data-tilt="5" href="products.html#linggeng" data-reveal style="--d:.05s">
+        <!-- 卡片四角装饰线（悬停时显现） -->
+        <span class="card-corner tl"></span><span class="card-corner br"></span>
+        <div class="pv ling">
+          <span class="halo" style="background:radial-gradient(circle,rgba(45,216,122,.32),transparent 70%)"></span>
+          <!-- 产品图标：叶片 + 土壤线，隐喻「生长在土地上的数据」 -->
+          <svg viewBox="0 0 96 96" fill="none">
+            <path d="M48 16C34 30 25 42 25 55a23 23 0 0 0 46 0c0-13-9-25-23-39Z" stroke="#2dd87a" stroke-width="1.6" fill="rgba(45,216,122,.1)"/>
+            <path d="M48 24v48M48 40l16-12M48 52l-14-10" stroke="#7af0b8" stroke-width="1.4" stroke-linecap="round"/>
+            <path d="M22 70h52" stroke="#51d8c8" stroke-width="1.4" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="pbody">
+          <span class="ptag">AGRI · 智慧农业</span>
+          <h3>灵耕® 农业监测系统</h3>
+          <p>土壤墒情、气象、作物长势一体化采集，结合云端模型给出灌溉与施肥建议，平均节水 32%、增产 14%。</p>
+          <span class="plink">了解详情 <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M2 8h11m-4-4.5L13.5 8 9 12.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        </div>
+      </a>
+
+      <!-- 产品二：光合（光伏） -->
+      <a class="card prod" data-tilt="5" href="products.html#guanghe" data-reveal style="--d:.15s">
+        <span class="card-corner tl"></span><span class="card-corner br"></span>
+        <div class="pv guang">
+          <span class="halo" style="background:radial-gradient(circle,rgba(240,200,116,.28),transparent 70%);animation-delay:-2s"></span>
+          <!-- 产品图标：太阳 + 光线 + 光伏板 -->
+          <svg viewBox="0 0 96 96" fill="none">
+            <circle cx="48" cy="48" r="16" stroke="#f0c874" stroke-width="1.6"/>
+            <path d="M48 12v10M48 74v10M12 48h10M74 48h10M22 22l7 7M67 67l7 7M74 22l-7 7M29 67l-7 7" stroke="#f0c874" stroke-width="1.5" stroke-linecap="round"/>
+            <rect x="40" y="68" width="16" height="10" rx="2" stroke="#7af0b8" stroke-width="1.4"/>
+          </svg>
+        </div>
+        <div class="pbody">
+          <span class="ptag">ENERGY · 绿色能源</span>
+          <h3>光合® 光伏管理平台</h3>
+          <p>面向户用与工商业光伏的远程运维平台，实时监测发电、故障预警与收益分析，平均提升发电效率 12%。</p>
+          <span class="plink">了解详情 <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M2 8h11m-4-4.5L13.5 8 9 12.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        </div>
+      </a>
+
+      <!-- 产品三：碳衡（碳管理） -->
+      <a class="card prod" data-tilt="5" href="products.html#tanheng" data-reveal style="--d:.25s">
+        <span class="card-corner tl"></span><span class="card-corner br"></span>
+        <div class="pv tan">
+          <span class="halo" style="background:radial-gradient(circle,rgba(81,216,200,.3),transparent 70%);animation-delay:-3.4s"></span>
+          <!-- 产品图标：上升曲线（排放趋势）+ 上方监测节点 -->
+          <svg viewBox="0 0 96 96" fill="none">
+            <path d="M16 60c12-22 22-22 32 0s20 22 32 0" stroke="#51d8c8" stroke-width="1.8" stroke-linecap="round"/>
+            <path d="M16 72c12-22 22-22 32 0s20 22 32 0" stroke="rgba(81,216,200,.4)" stroke-width="1.3" stroke-linecap="round"/>
+            <circle cx="48" cy="34" r="9" stroke="#7af0b8" stroke-width="1.5"/>
+            <path d="M48 25v-7M38 40l-6-4M58 40l6-4" stroke="#51d8c8" stroke-width="1.3" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="pbody">
+          <span class="ptag">CARBON · 碳管理</span>
+          <h3>碳衡® 企业碳管理 SaaS</h3>
+          <p>符合 ISO 14064 与国内核算指南的碳盘查工具，自动生成排放报告与减排路径，满足合规与披露需求。</p>
+          <span class="plink">了解详情 <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M2 8h11m-4-4.5L13.5 8 9 12.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        </div>
+      </a>
+    </div>
+  </section>
+
+  <!-- ==========================================================
+       为什么选择绿境（复用 .products 三列栅格，内容为纯文本卡片）
+       ========================================================== -->
+  <section class="sec" style="padding-top:0">
+    <div class="sec-head" data-reveal>
+      <span class="sec-no">02 / WHY US</span>
+      <h2 class="sec-title split">为什么选择<span class="hl">绿境</span></h2>
+      <span class="sec-en">WHY VERDANT</span>
+    </div>
+
+    <div class="products">
+      <div class="card" data-tilt="5" data-reveal style="--d:.05s;padding:34px 30px">
+        <span class="card-corner tl"></span><span class="card-corner br"></span>
+        <!-- 大号序号：低透明度英文数字，作为视觉锚点 -->
+        <div style="font-family:var(--f-en);font-size:2rem;color:rgba(122,240,184,.18)">01</div>
+        <h3 style="font-family:var(--f-disp);font-weight:400;font-size:1.25rem;letter-spacing:.1em;margin:14px 0 10px">端到端交付</h3>
+        <p style="color:var(--ink-2);font-size:.9rem">从传感器硬件、网关、平台到移动端 App，提供一体化方案，避免多厂商集成的扯皮与风险。</p>
+      </div>
+      <div class="card" data-tilt="5" data-reveal style="--d:.15s;padding:34px 30px">
+        <span class="card-corner tl"></span><span class="card-corner br"></span>
+        <div style="font-family:var(--f-en);font-size:2rem;color:rgba(122,240,184,.18)">02</div>
+        <h3 style="font-family:var(--f-disp);font-weight:400;font-size:1.25rem;letter-spacing:.1em;margin:14px 0 10px">真实场景验证</h3>
+        <p style="color:var(--ink-2);font-size:.9rem">产品已在全国 12 省落地，覆盖粮食、果蔬、茶园等 8 类场景，平均部署周期不超过 14 天。</p>
+      </div>
+      <div class="card" data-tilt="5" data-reveal style="--d:.25s;padding:34px 30px">
+        <span class="card-corner tl"></span><span class="card-corner br"></span>
+        <div style="font-family:var(--f-en);font-size:2rem;color:rgba(122,240,184,.18)">03</div>
+        <h3 style="font-family:var(--f-disp);font-weight:400;font-size:1.25rem;letter-spacing:.1em;margin:14px 0 10px">数据安全合规</h3>
+        <p style="color:var(--ink-2);font-size:.9rem">通过等保三级认证，数据本地化存储，支持私有化部署，满足政企客户的安全要求。</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==========================================================
+       底部转化横幅（CTA）
+       data-reveal="scale" → 进入视口时从 0.88 倍放大淡入
+       ========================================================== -->
+  <section class="sec" style="padding-top:0">
+    <div class="cta-banner" data-reveal="scale">
+      <span class="sec-no" style="justify-content:center">GET STARTED</span>
+      <h2 style="margin-top:16px">免费试用，30 天无理由退款</h2>
+      <p>注册账号即可体验碳衡 SaaS 与灵耕数据看板，专属顾问 1 对 1 对接。</p>
+      <div style="display:flex;gap:18px;justify-content:center;flex-wrap:wrap">
+        <a class="btn btn-primary" data-magnetic="0.25" href="register.html">免费注册
+          <svg viewBox="0 0 16 16" fill="none"><path d="M2 8h11m-4-4.5L13.5 8 9 12.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </a>
+        <a class="btn btn-ghost" data-magnetic="0.25" href="contact.html">联系销售</a>
+      </div>
+      <span class="glow-line"></span>
+    </div>
+  </section>
+
+  <!-- ==========================================================
+       页脚（全站共用结构）
+       四列：品牌信息 / 产品 / 公司 / 支持
+       ========================================================== -->
+  <footer class="footer">
+    <div class="footer-grid">
+      <!-- 第一列：品牌 + 一句话定位 + 联系方式 -->
+      <div data-reveal>
+        <a class="brand" href="index.html">
+          <svg class="brand-mark" viewBox="0 0 40 40" fill="none">
+            <rect x="9" y="9" width="22" height="22" rx="5" transform="rotate(45 20 20)" stroke="#2dd87a" stroke-width="1.5"/>
+            <path d="M20 11c-4.4 4.4-6.6 8-6.6 11.2a6.6 6.6 0 0 0 13.2 0C26.6 19 24.4 15.4 20 11Z" fill="rgba(45,216,122,.22)" stroke="#7af0b8" stroke-width="1.2"/>
+          </svg>
+          <span class="brand-name">绿境科技<i>VERDANT GREENTECH</i></span>
+        </a>
+        <p class="footer-desc">智慧农业物联网 · 分布式光伏管理 · 企业碳管理 SaaS。让数据在土地上生长。</p>
+        <div class="footer-contact">
+          <span>📞 400-888-0168</span>
+          <span>✉️ contact@verdant-greentech.com</span>
+          <span>📍 杭州市余杭区未来科技城</span>
+        </div>
+      </div>
+      <!-- 第二列：产品快捷入口（带锚点，直达产品页对应区块） -->
+      <div data-reveal style="--d:.08s">
+        <h4>PRODUCTS</h4>
+        <div class="footer-links">
+          <a href="products.html#linggeng">灵耕® 农业监测</a>
+          <a href="products.html#guanghe">光合® 光伏平台</a>
+          <a href="products.html#tanheng">碳衡® 碳管理 SaaS</a>
+          <a href="lab.html">碳足迹计算器</a>
+        </div>
+      </div>
+      <!-- 第三列：公司信息 -->
+      <div data-reveal style="--d:.16s">
+        <h4>COMPANY</h4>
+        <div class="footer-links">
+          <a href="about.html">关于我们</a>
+          <a href="about.html#milestone">发展历程</a>
+          <a href="contact.html">联系我们</a>
+          <a href="contact.html#partner">合作伙伴</a>
+        </div>
+      </div>
+      <!-- 第四列：账号与支持 -->
+      <div data-reveal style="--d:.24s">
+        <h4>SUPPORT</h4>
+        <div class="footer-links">
+          <a href="login.html">登录</a>
+          <a href="register.html">免费注册</a>
+          <a href="profile.html">控制台</a>
+          <a href="contact.html">技术支持</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- 超大描边英文水印（data-reveal="blur" 模糊浮现）；user-select:none 防止误选中 -->
+    <div class="footer-brand-big" data-reveal="blur">VERDANT</div>
+
+    <div class="footer-bottom">
+      <span>© 2019–2026 绿境科技（杭州）有限公司 · 浙ICP备2019XXXXXX号</span>
+      <span>等保三级 · ISO 27001 · 高新技术企业</span>
+    </div>
+  </footer>
+
+</div>
+
+<!-- ==========================================================
+     脚本加载顺序（不可随意调整）
+     1) firebase-config.js  先写入 window.FIREBASE_CONFIG（本地脚本，必须最先）
+     2) firebase-app / auth 官方 SDK（CDN，使用 compat 版本以匹配全局 firebase 对象）
+     3) auth.js            读取 FIREBASE_CONFIG，决定「云端认证」还是「演示模式」
+     4) particles.js       Canvas 背景（置于 body 首位作为底层）
+     5) main.js            交互引擎，内部通过 VAuth.whenReady 渲染登录态
+     注意：均未加 defer，因为需要按上述顺序同步执行；脚本位于 </body> 前，
+           此时 DOM 已解析完毕，可直接操作节点。
+     ========================================================== -->
+<script src="js/firebase-config.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/particles.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>

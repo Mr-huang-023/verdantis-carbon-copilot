@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<!-- ==========================================================
+     产品方案 products.html
+     ----------------------------------------------------------
+     页面作用：三条产品线的详情介绍
+       1. 灵耕® 智慧农业监测系统   → #linggeng
+       2. 光合® 分布式光伏管理平台 → #guanghe
+       3. 碳衡® 企业碳管理 SaaS    → #tanheng
+     锚点说明：首页 / 页脚 / 控制台均通过 products.html#xxx 直达对应产品块
+     布局说明：.product-block 为左右两栏，偶数项通过 order 把图示换到右侧，
+               形成「图左文右 / 图右文左」的交替节奏
+     依赖：css/main.css + 本页内联样式（页面级，不影响全站）
+     ========================================================== -->
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>产品方案 · 绿境科技</title>
+<meta name="description" content="灵耕农业监测、光合光伏管理、碳衡碳管理 SaaS 三大产品线详情。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=ZCOOL+XiaoWei&family=Marcellus&family=Noto+Sans+SC:wght@300;400;500&family=JetBrains+Mono:wght@300;400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/main.css">
+<!-- 页面级样式：只在本页生效
+     .product-block  图文两栏容器，gap 用 clamp 做流式间距
+     .pb-visual      图示区（4:3 比例 + 渐变底 + 内联 SVG 线稿）
+     .specs / .spec  产品参数小卡片（两列网格）
+     .cta-row        底部「定制化方案」横幅 -->
+<style>
+.page-hero { padding: 170px var(--pad-x) 50px; position: relative; }
+.page-hero .crumb { font-family: var(--f-mono); font-size: .72rem; letter-spacing: .4em; color: var(--g1); }
+.page-hero .crumb a { color: var(--ink-3); transition: color .3s; }
+.page-hero .crumb a:hover { color: var(--g2); }
+.page-hero h1 { font-family: var(--f-disp); font-weight: 400; font-size: clamp(2.4rem, 6vw, 4.4rem); letter-spacing: .1em; margin-top: 18px; }
+.page-hero p { max-width: 560px; color: var(--ink-2); margin-top: 14px; }
+
+/* 产品详情块 */
+.product-block { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(30px, 5vw, 70px); align-items: center; margin-bottom: clamp(80px, 10vw, 140px); }
+.product-block:nth-child(even) .pb-visual { order: 2; }
+.pb-visual { position: relative; aspect-ratio: 4/3; border-radius: var(--r-lg); border: 1px solid var(--line); overflow: hidden; display: grid; place-items: center; }
+.pb-visual svg { width: 60%; height: 60%; position: relative; z-index: 1; }
+.pb-visual .bg-orb { position: absolute; inset: 0; }
+.pb-text h2 { font-family: var(--f-disp); font-weight: 400; font-size: clamp(1.7rem, 3.4vw, 2.6rem); letter-spacing: .1em; }
+.pb-text .en { font-family: var(--f-en); font-size: .72rem; letter-spacing: .4em; color: var(--g1); margin: 8px 0 20px; }
+.pb-text > p { color: var(--ink-2); font-size: .96rem; margin-bottom: 24px; }
+.specs { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 26px; }
+.spec { padding: 14px 16px; border: 1px solid var(--line); border-radius: var(--r-md); background: rgba(5,18,12,.5); }
+.spec .k { font-family: var(--f-mono); font-size: .62rem; letter-spacing: .24em; color: var(--ink-3); }
+.spec .v { color: var(--g2); font-size: 1.1rem; margin-top: 6px; font-family: var(--f-en); }
+.spec .v small { font-size: .6rem; color: var(--ink-3); margin-left: 4px; }
+
+.cta-row { margin-top: clamp(60px, 8vw, 100px); text-align: center; }
+.cta-row .banner { border: 1px solid var(--line-strong); border-radius: var(--r-lg); padding: clamp(36px, 5vw, 56px) 24px; background: radial-gradient(ellipse 80% 100% at 50% 0%, rgba(45,216,122,.14), transparent), linear-gradient(180deg, rgba(8,30,20,.5), rgba(4,15,10,.85)); }
+.cta-row h3 { font-family: var(--f-disp); font-weight: 400; font-size: clamp(1.4rem, 3vw, 2rem); letter-spacing: .12em; }
+.cta-row p { color: var(--ink-2); margin: 12px auto 26px; max-width: 480px; }
+
+@media (max-width: 900px) { .product-block { grid-template-columns: 1fr; } .product-block:nth-child(even) .pb-visual { order: 0; } .page-hero { padding-top: 130px; } }
+</style>
+</head>
+<!-- data-page="products"     → 导航「产品方案」高亮
+     data-particles="network" → 网络连线粒子，呼应「感知—能源—核算」全链路主题 -->
+<body data-page="products" data-particles="network">
+
+<header class="nav" id="nav">
+  <a class="brand" href="index.html">
+    <svg class="brand-mark" viewBox="0 0 40 40" fill="none"><rect x="9" y="9" width="22" height="22" rx="5" transform="rotate(45 20 20)" stroke="#2dd87a" stroke-width="1.5"/><path d="M20 11c-4.4 4.4-6.6 8-6.6 11.2a6.6 6.6 0 0 0 13.2 0C26.6 19 24.4 15.4 20 11Z" fill="rgba(45,216,122,.22)" stroke="#7af0b8" stroke-width="1.2"/><path d="M20 14.5V24" stroke="#7af0b8" stroke-width="1.1" stroke-linecap="round"/></svg>
+    <span class="brand-name">绿境科技<i>VERDANT GREENTECH</i></span>
+  </a>
+  <nav class="nav-links">
+    <a href="index.html" data-nav="home">首页</a>
+    <a href="products.html" data-nav="products">产品方案</a>
+    <a href="lab.html" data-nav="lab">碳计算器</a>
+    <a href="about.html" data-nav="about">关于我们</a>
+    <a href="contact.html" data-nav="contact">联系我们</a>
+  </nav>
+  <div class="nav-right">
+    <div class="nav-auth" id="authArea"></div>
+    <button class="nav-burger" id="burger" aria-label="打开菜单" aria-expanded="false"><span></span><span></span><span></span></button>
+  </div>
+  <div class="mobile-menu" id="mobileMenu">
+    <a href="index.html">首页<em>HOME</em></a>
+    <a href="products.html">产品<em>PRODUCTS</em></a>
+    <a href="lab.html">碳计算器<em>CARBON</em></a>
+    <a href="about.html">关于<em>ABOUT</em></a>
+    <a href="contact.html">联系<em>CONTACT</em></a>
+    <a href="login.html" data-auth>登录<em>LOGIN</em></a>
+  </div>
+</header>
+
+<!-- page-shell：页面内容容器；page-enter：入场动画 -->
+<div class="page-shell page-enter">
+
+  <!-- 页头：面包屑 + 主标题（.split 由 main.js 逐字拆分入场） -->
+  <section class="page-hero">
+    <p class="crumb" data-hero-fade style="--d:.8s"><a href="index.html">首页</a> / PRODUCTS</p>
+    <h1 class="split hero-split">产品<span class="hl">方案</span></h1>
+    <p data-hero-fade style="--d:1.2s">三条产品线，覆盖「感知—能源—核算」全链路，均已在真实客户场景中验证。</p>
+  </section>
+
+  <section class="sec" style="padding-top:10px">
+
+    <!-- ==================== 产品 1：灵耕® 智慧农业监测 ====================
+         id="linggeng" 作为锚点目标，供 products.html#linggeng 直接定位
+         图示为内联 SVG 线稿（叶片 + 土壤传感器），避免额外图片请求 -->
+    <div class="product-block" id="linggeng" data-reveal>
+      <div class="pb-visual" style="background:radial-gradient(circle at 50% 60%, rgba(45,216,122,.18), transparent 62%), linear-gradient(160deg,#06251a,#04130c)">
+        <svg viewBox="0 0 120 120" fill="none">
+          <path d="M60 22C42 40 30 54 30 70a30 30 0 0 0 60 0c0-16-12-30-30-48Z" stroke="#2dd87a" stroke-width="1.8" fill="rgba(45,216,122,.1)"/>
+          <path d="M60 34v60M60 56l20-14M60 70l-18-12M60 82l16-11" stroke="#7af0b8" stroke-width="1.5" stroke-linecap="round"/>
+          <path d="M28 88h64" stroke="#51d8c8" stroke-width="1.6" stroke-linecap="round"/>
+          <circle cx="38" cy="88" r="3" fill="#51d8c8"/><circle cx="82" cy="88" r="3" fill="#51d8c8"/>
+        </svg>
+      </div>
+      <div class="pb-text">
+        <h2>灵耕® 智慧农业监测系统</h2>
+        <div class="en">LINGGENG · SMART AGRICULTURE</div>
+        <p>通过部署在田间的土壤墒情、气象站、虫情测报与作物长势相机，将农业生产全要素数据实时上传云端。平台内置针对 8 类作物的灌溉与施肥决策模型，可对接电磁阀与水肥一体机实现自动控制。</p>
+        <!-- 核心参数：数值来自项目落地统计，不写无法验证的夸张指标 -->
+        <div class="specs">
+          <div class="spec"><div class="k">监测参数</div><div class="v">16<small> 项</small></div></div>
+          <div class="spec"><div class="k">数据上传间隔</div><div class="v">5<small> 分钟</small></div></div>
+          <div class="spec"><div class="k">平均节水</div><div class="v">32<small> %</small></div></div>
+          <div class="spec"><div class="k">平均增产</div><div class="v">14<small> %</small></div></div>
+        </div>
+        <a class="btn btn-ghost btn-sm" href="contact.html">申请试用 →</a>
+      </div>
+    </div>
+
+    <!-- ==================== 产品 2：光合® 分布式光伏管理平台 ====================
+         作为 .product-block 的第 2 项，CSS 会通过 order 把图示换到右列 -->
+    <div class="product-block" id="guanghe" data-reveal>
+      <div class="pb-visual" style="background:radial-gradient(circle at 50% 60%, rgba(240,200,116,.16), transparent 62%), linear-gradient(160deg,#0a2416,#04130c)">
+        <svg viewBox="0 0 120 120" fill="none">
+          <circle cx="60" cy="52" r="20" stroke="#f0c874" stroke-width="1.8"/>
+          <path d="M60 20v8M60 76v8M28 52h8M84 52h8M38 30l5 5M77 69l5 5M82 30l-5 5M43 69l-5 5" stroke="#f0c874" stroke-width="1.6" stroke-linecap="round"/>
+          <rect x="44" y="86" width="32" height="14" rx="3" stroke="#7af0b8" stroke-width="1.5"/>
+          <path d="M48 90v6M56 90v6M64 90v6M72 90v6" stroke="#7af0b8" stroke-width="1.2"/>
+        </svg>
+      </div>
+      <div class="pb-text">
+        <h2>光合® 分布式光伏管理平台</h2>
+        <div class="en">GUANGHE · PV MANAGEMENT</div>
+        <p>面向户用与工商业分布式光伏的远程运维平台。支持逆变器、电表、气象站数据实时接入，提供发电量分析、故障告警、清洗建议与收益结算报表，已接入逆变器品牌 18 家。</p>
+        <!-- 参数卡结构与产品 1 完全一致，保持视觉与信息密度统一 -->
+        <div class="specs">
+          <div class="spec"><div class="k">接入逆变器</div><div class="v">18<small> 品牌</small></div></div>
+          <div class="spec"><div class="k">发电效率提升</div><div class="v">12<small> %</small></div></div>
+          <div class="spec"><div class="k">故障定位</div><div class="v">≤30<small> 秒</small></div></div>
+          <div class="spec"><div class="k">累计管理装机</div><div class="v">320<small> MW</small></div></div>
+        </div>
+        <a class="btn btn-ghost btn-sm" href="contact.html">申请试用 →</a>
+      </div>
+    </div>
+
+    <!-- ==================== 产品 3：碳衡® 企业碳管理 SaaS ====================
+         核算标准与排放因子库是本产品的可信度核心，参数需与 lab.html 的说明保持一致 -->
+    <div class="product-block" id="tanheng" data-reveal>
+      <div class="pb-visual" style="background:radial-gradient(circle at 50% 60%, rgba(81,216,200,.18), transparent 62%), linear-gradient(160deg,#052018,#04130c)">
+        <svg viewBox="0 0 120 120" fill="none">
+          <path d="M20 74c15-26 27-26 40 0s25 26 40 0" stroke="#51d8c8" stroke-width="2" stroke-linecap="round"/>
+          <path d="M20 88c15-26 27-26 40 0s25 26 40 0" stroke="rgba(81,216,200,.4)" stroke-width="1.4" stroke-linecap="round"/>
+          <circle cx="60" cy="42" r="11" stroke="#7af0b8" stroke-width="1.6"/>
+          <path d="M60 27v-6M46 50l-6-4M74 50l6-4" stroke="#51d8c8" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="pb-text">
+        <h2>碳衡® 企业碳管理 SaaS</h2>
+        <div class="en">TANHENG · CARBON MANAGEMENT</div>
+        <p>符合 ISO 14064 与《企业温室气体排放核算与报告指南》的碳盘查工具。支持组织碳盘查、产品碳足迹、减排路径规划与合规报告导出，已服务制造业、物流业、园区等 480+ 企业客户。</p>
+        <!-- 核算标准类参数使用文字而非数字，强调合规属性 -->
+        <div class="specs">
+          <div class="spec"><div class="k">核算标准</div><div class="v">ISO 14064</div></div>
+          <div class="spec"><div class="k">排放因子库</div><div class="v">3200<small>+</small></div></div>
+          <div class="spec"><div class="k">服务企业</div><div class="v">480<small>+</small></div></div>
+          <div class="spec"><div class="k">报告导出</div><div class="v">PDF<small> / Excel</small></div></div>
+        </div>
+        <a class="btn btn-ghost btn-sm" href="contact.html">申请试用 →</a>
+      </div>
+    </div>
+
+    <!-- 底部转化横幅：面向有定制需求的客户，统一引导至联系页 -->
+    <div class="cta-row" data-reveal="scale">
+      <div class="banner">
+        <h3>需要定制化方案？</h3>
+        <p>我们为农业合作社、能源集团与工业园区提供专属解决方案，欢迎联系销售团队。</p>
+        <a class="btn btn-primary" data-magnetic="0.25" href="contact.html">联系销售</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- 页脚：四栏链接 + 品牌大字 + 备案信息；data-reveal 控制分栏依次显现 -->
+  <footer class="footer">
+    <div class="footer-grid">
+      <div data-reveal>
+        <a class="brand" href="index.html"><svg class="brand-mark" viewBox="0 0 40 40" fill="none"><rect x="9" y="9" width="22" height="22" rx="5" transform="rotate(45 20 20)" stroke="#2dd87a" stroke-width="1.5"/><path d="M20 11c-4.4 4.4-6.6 8-6.6 11.2a6.6 6.6 0 0 0 13.2 0C26.6 19 24.4 15.4 20 11Z" fill="rgba(45,216,122,.22)" stroke="#7af0b8" stroke-width="1.2"/></svg><span class="brand-name">绿境科技<i>VERDANT GREENTECH</i></span></a>
+        <p class="footer-desc">智慧农业物联网 · 分布式光伏管理 · 企业碳管理 SaaS。</p>
+        <div class="footer-contact"><span>📞 400-888-0168</span><span>✉️ contact@verdant-greentech.com</span><span>📍 杭州市余杭区未来科技城</span></div>
+      </div>
+      <div data-reveal style="--d:.08s"><h4>PRODUCTS</h4><div class="footer-links"><a href="products.html#linggeng">灵耕® 农业监测</a><a href="products.html#guanghe">光合® 光伏平台</a><a href="products.html#tanheng">碳衡® 碳管理</a><a href="lab.html">碳足迹计算器</a></div></div>
+      <div data-reveal style="--d:.16s"><h4>COMPANY</h4><div class="footer-links"><a href="about.html">关于我们</a><a href="about.html#milestone">发展历程</a><a href="contact.html">联系我们</a><a href="contact.html#partner">合作伙伴</a></div></div>
+      <div data-reveal style="--d:.24s"><h4>SUPPORT</h4><div class="footer-links"><a href="login.html">登录</a><a href="register.html">免费注册</a><a href="profile.html">控制台</a><a href="contact.html">技术支持</a></div></div>
+    </div>
+    <div class="footer-brand-big" data-reveal="blur">VERDANT</div>
+    <div class="footer-bottom"><span>© 2019–2026 绿境科技（杭州）有限公司 · 浙ICP备2019XXXXXX号</span><span>等保三级 · ISO 27001 · 高新技术企业</span></div>
+  </footer>
+</div>
+
+<!-- 脚本加载顺序不可随意调整：
+     1. firebase-config.js  先写入 window.FIREBASE_CONFIG（占位值会触发演示模式）
+     2. Firebase SDK（compat 版）提供全局 firebase 对象
+     3. auth.js             依赖 1、2，初始化 VAuth
+     4. particles.js        读取 body[data-particles] 启动 Canvas 粒子
+     5. main.js             最后执行导航/滚动显现/计数/光标等交互 -->
+<script src="js/firebase-config.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/particles.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>

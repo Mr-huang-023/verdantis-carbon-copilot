@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<!-- ==========================================================
+     关于我们 about.html
+     ----------------------------------------------------------
+     页面作用：企业介绍页，包含四个部分
+       1. 公司简介 + 团队数据（人数 / 省份 / 专利）
+       2. 资质与认证卡片（等保三级、ISO 27001 等）
+       3. 发展历程时间线 #milestone（2019 → 2026，共 6 个节点）
+       4. 核心价值观 + 招聘横幅
+     锚点：页脚「发展历程」指向 about.html#milestone
+     依赖：css/main.css + 本页内联样式（时间线、价值观网格）
+     ========================================================== -->
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>关于我们 · 绿境科技</title>
+<meta name="description" content="绿境科技，2019 年成立于杭州，专注智慧农业、绿色能源与碳管理。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=ZCOOL+XiaoWei&family=Marcellus&family=Noto+Sans+SC:wght@300;400;500&family=JetBrains+Mono:wght@300;400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/main.css">
+<!-- 页面级样式：只在本页生效
+     .about-grid   图文两栏（简介 + 资质卡）
+     .timeline     竖向时间线：左侧渐变竖线 + 发光节点 + 涟漪动画
+     .values       三列价值观卡片
+     .join-banner  招聘/加入横幅 -->
+<style>
+.page-hero { padding: 170px var(--pad-x) 50px; position: relative; }
+.page-hero .crumb { font-family: var(--f-mono); font-size: .72rem; letter-spacing: .4em; color: var(--g1); }
+.page-hero .crumb a { color: var(--ink-3); transition: color .3s; }
+.page-hero .crumb a:hover { color: var(--g2); }
+.page-hero h1 { font-family: var(--f-disp); font-weight: 400; font-size: clamp(2.4rem, 6vw, 4.4rem); letter-spacing: .1em; margin-top: 18px; }
+.page-hero p { max-width: 560px; color: var(--ink-2); margin-top: 14px; }
+
+.about-grid { display: grid; grid-template-columns: 1fr 1.1fr; gap: clamp(30px, 5vw, 70px); align-items: center; }
+.about-text .en { font-family: var(--f-en); font-size: .72rem; letter-spacing: .4em; color: var(--g1); margin-bottom: 18px; }
+.about-text h2 { font-family: var(--f-disp); font-weight: 400; font-size: clamp(1.7rem, 3.4vw, 2.6rem); letter-spacing: .1em; margin-bottom: 18px; }
+.about-text p { color: var(--ink-2); margin-bottom: 14px; font-size: .96rem; }
+.about-stats { display: flex; gap: 34px; margin-top: 30px; flex-wrap: wrap; }
+.about-stats .s b { font-family: var(--f-en); font-size: 1.9rem; font-weight: 400; color: var(--g2); display: block; }
+.about-stats .s span { font-family: var(--f-mono); font-size: .64rem; letter-spacing: .24em; color: var(--ink-3); }
+
+.timeline { position: relative; max-width: 880px; margin: 0 auto; padding-left: 40px; }
+.timeline::before { content: ''; position: absolute; left: 8px; top: 6px; bottom: 6px; width: 2px; background: linear-gradient(180deg, transparent, var(--g1) 12%, var(--cyan) 60%, transparent); box-shadow: 0 0 14px rgba(45,216,122,.5); }
+.tl-item { position: relative; padding: 0 0 50px 26px; }
+.tl-item:last-child { padding-bottom: 0; }
+.tl-item::before { content: ''; position: absolute; left: -38px; top: 10px; width: 12px; height: 12px; border-radius: 50%; background: var(--bg-0); border: 2px solid var(--g1); box-shadow: 0 0 16px var(--g1); }
+.tl-item::after { content: ''; position: absolute; left: -34px; top: 14px; width: 4px; height: 4px; border-radius: 50%; background: var(--g2); animation: tlPing 2.4s ease-out infinite; }
+@keyframes tlPing { from { transform: scale(1); opacity: .9; } to { transform: scale(4); opacity: 0; } }
+.tl-year { font-family: var(--f-en); font-size: 1.8rem; color: var(--g2); letter-spacing: .1em; line-height: 1; }
+.tl-item h3 { font-family: var(--f-disp); font-weight: 400; font-size: 1.15rem; letter-spacing: .12em; margin: 10px 0 8px; }
+.tl-item p { color: var(--ink-2); font-size: .92rem; max-width: 560px; }
+
+.values { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
+.value { padding: 32px 28px; }
+.value h3 { font-family: var(--f-disp); font-weight: 400; font-size: 1.2rem; letter-spacing: .12em; margin-bottom: 12px; }
+.value p { color: var(--ink-2); font-size: .88rem; }
+
+.join-banner { margin-top: clamp(60px, 8vw, 100px); text-align: center; padding: clamp(46px, 6vw, 76px) 24px; border-radius: var(--r-lg); border: 1px solid var(--line-strong); background: radial-gradient(ellipse 80% 100% at 50% 0%, rgba(45,216,122,.14), transparent), linear-gradient(180deg, rgba(8,30,20,.5), rgba(4,15,10,.85)); }
+.join-banner h2 { font-family: var(--f-disp); font-weight: 400; font-size: clamp(1.8rem, 4vw, 3rem); letter-spacing: .1em; }
+.join-banner p { color: var(--ink-2); margin: 16px auto 32px; max-width: 460px; }
+
+@media (max-width: 900px) { .about-grid { grid-template-columns: 1fr; } .values { grid-template-columns: 1fr; } .page-hero { padding-top: 130px; } }
+</style>
+</head>
+<!-- data-page="about"     → 导航「关于我们」高亮
+     data-particles="wisps" → 气流丝线粒子，语气比首页更沉稳 -->
+<body data-page="about" data-particles="wisps">
+
+<header class="nav" id="nav">
+  <a class="brand" href="index.html"><svg class="brand-mark" viewBox="0 0 40 40" fill="none"><rect x="9" y="9" width="22" height="22" rx="5" transform="rotate(45 20 20)" stroke="#2dd87a" stroke-width="1.5"/><path d="M20 11c-4.4 4.4-6.6 8-6.6 11.2a6.6 6.6 0 0 0 13.2 0C26.6 19 24.4 15.4 20 11Z" fill="rgba(45,216,122,.22)" stroke="#7af0b8" stroke-width="1.2"/><path d="M20 14.5V24" stroke="#7af0b8" stroke-width="1.1" stroke-linecap="round"/></svg><span class="brand-name">绿境科技<i>VERDANT GREENTECH</i></span></a>
+  <nav class="nav-links">
+    <a href="index.html" data-nav="home">首页</a>
+    <a href="products.html" data-nav="products">产品方案</a>
+    <a href="lab.html" data-nav="lab">碳计算器</a>
+    <a href="about.html" data-nav="about">关于我们</a>
+    <a href="contact.html" data-nav="contact">联系我们</a>
+  </nav>
+  <div class="nav-right">
+    <div class="nav-auth" id="authArea"></div>
+    <button class="nav-burger" id="burger" aria-label="打开菜单" aria-expanded="false"><span></span><span></span><span></span></button>
+  </div>
+  <div class="mobile-menu" id="mobileMenu">
+    <a href="index.html">首页<em>HOME</em></a><a href="products.html">产品<em>PRODUCTS</em></a><a href="lab.html">碳计算器<em>CARBON</em></a><a href="about.html">关于<em>ABOUT</em></a><a href="contact.html">联系<em>CONTACT</em></a><a href="login.html" data-auth>登录<em>LOGIN</em></a>
+  </div>
+</header>
+
+<!-- page-shell：内容容器；page-enter：入场动画 -->
+<div class="page-shell page-enter">
+
+  <!-- 页头：面包屑 + 主标题 + 一句话定位 -->
+  <section class="page-hero">
+    <p class="crumb" data-hero-fade style="--d:.8s"><a href="index.html">首页</a> / ABOUT</p>
+    <h1 class="split hero-split">关于<span class="hl">绿境</span></h1>
+    <p data-hero-fade style="--d:1.2s">2019 年成立于杭州，我们相信：最好的技术，是让土地、能源与数据彼此生长。</p>
+  </section>
+
+  <!-- ==================== 公司简介 + 资质认证 ====================
+       data-reveal="left/right" 控制两栏从相反方向进场 -->
+  <section class="sec" style="padding-top:10px">
+    <div class="about-grid">
+      <div class="about-text" data-reveal="left">
+        <div class="en">WHO WE ARE</div>
+        <h2>用数据驱动<br>真实的绿色增长</h2>
+        <p>绿境科技由农业工程与能源信息化领域的工程师创立，团队来自浙江大学、中国农业大学与华为、阿里云等企业。我们的核心团队平均拥有 8 年以上行业经验。</p>
+        <p>公司以「让数据在土地上生长」为使命，已在全国 12 个省份落地项目，覆盖智慧农业、绿色能源与企业碳管理三大方向。2025 年完成 B 轮融资，估值 12 亿元。</p>
+        <!-- 团队数据：data-count 为滚动目标值，由 main.js 的计数动画填充 -->
+        <div class="about-stats">
+          <div class="s"><b class="num" data-count="120">0</b><span>团队规模</span></div>
+          <div class="s"><b class="num" data-count="12">0</b><span>覆盖省份</span></div>
+          <div class="s"><b class="num" data-count="60">0</b><span>专利与软著</span></div>
+        </div>
+      </div>
+      <!-- 资质与认证卡片：四项均为企业实际对外公示的资质，
+           使用 2×2 小格而非大段文字，便于快速扫读 -->
+      <div data-reveal="right">
+        <div class="card" style="padding:38px 36px">
+          <span class="card-corner tl"></span><span class="card-corner br"></span>
+          <h3 style="font-family:var(--f-disp);font-weight:400;font-size:1.3rem;letter-spacing:.12em;margin-bottom:18px">资质与认证</h3>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+            <div style="padding:14px;border:1px solid var(--line);border-radius:10px;text-align:center"><div style="font-family:var(--f-mono);font-size:.7rem;color:var(--g2);letter-spacing:.1em">等保三级</div></div>
+            <div style="padding:14px;border:1px solid var(--line);border-radius:10px;text-align:center"><div style="font-family:var(--f-mono);font-size:.7rem;color:var(--g2);letter-spacing:.1em">ISO 27001</div></div>
+            <div style="padding:14px;border:1px solid var(--line);border-radius:10px;text-align:center"><div style="font-family:var(--f-mono);font-size:.7rem;color:var(--g2);letter-spacing:.1em">高新技术企业</div></div>
+            <div style="padding:14px;border:1px solid var(--line);border-radius:10px;text-align:center"><div style="font-family:var(--f-mono);font-size:.7rem;color:var(--g2);letter-spacing:.1em">专精特新</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== 发展历程 ====================
+       id="milestone" 供页脚「发展历程」链接直接定位
+       六个节点：2019 成立 → 2021 灵耕商用 → 2023 光合上线 → 2024 碳衡发布 → 2025 B 轮 → 2026 覆盖 12 省 -->
+  <section class="sec" id="milestone" style="padding-top:0">
+    <div class="sec-head" data-reveal>
+      <span class="sec-no">MILESTONE</span>
+      <h2 class="sec-title split">发展<span class="hl">历程</span></h2>
+      <span class="sec-en">MILESTONE</span>
+    </div>
+    <!-- 时间线：竖线由 .timeline::before 绘制；每个 .tl-item 左侧为发光节点，
+         节点外的涟漪由 ::after + tlPing 动画实现（装饰性，无交互） -->
+    <div class="timeline">
+      <div class="tl-item" data-reveal="left">
+        <div class="tl-year">2019</div>
+        <h3>公司成立</h3>
+        <p>绿境科技在杭州未来科技城注册成立，首个产品「灵耕」智慧农业监测系统立项。</p>
+      </div>
+      <div class="tl-item" data-reveal="left" style="--d:.1s">
+        <div class="tl-year">2021</div>
+        <h3>灵耕® 1.0 商用发布</h3>
+        <p>灵耕农业监测系统正式商用，首批落地浙江、江苏 30 个合作社，节水率达 28%。</p>
+      </div>
+      <div class="tl-item" data-reveal="left" style="--d:.1s">
+        <div class="tl-year">2023</div>
+        <h3>光合® 光伏平台上线</h3>
+        <p>分布式光伏管理平台发布，接入逆变器品牌 12 家，累计管理装机突破 100 MW。</p>
+      </div>
+      <div class="tl-item" data-reveal="left" style="--d:.1s">
+        <div class="tl-year">2024</div>
+        <h3>碳衡® SaaS 发布</h3>
+        <p>碳衡企业碳管理 SaaS 上线，通过 ISO 14064 核算模型校验，服务首批 80 家制造业客户。</p>
+      </div>
+      <div class="tl-item" data-reveal="left" style="--d:.1s">
+        <div class="tl-year">2025</div>
+        <h3>B 轮融资</h3>
+        <p>完成 B 轮 2 亿元融资，由红杉中国领投，估值 12 亿元，团队扩张至 120 人。</p>
+      </div>
+      <div class="tl-item" data-reveal="left" style="--d:.1s">
+        <div class="tl-year">2026</div>
+        <h3>服务覆盖 12 省</h3>
+        <p>三条产品线累计服务农户 12,000+、企业 480+，光伏装机 320 MW，监测耕地 86 万亩。</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== 核心价值观 ====================
+       data-tilt="5" 表示鼠标移动时卡片最大倾斜 5 度（见 main.js 的 initTilt） -->
+  <section class="sec" style="padding-top:0">
+    <div class="sec-head" data-reveal>
+      <span class="sec-no">VALUES</span>
+      <h2 class="sec-title split">核心<span class="hl">价值观</span></h2>
+      <span class="sec-en">VALUES</span>
+    </div>
+    <div class="values">
+      <div class="card value" data-tilt="5" data-reveal style="--d:.05s">
+        <span class="card-corner tl"></span><span class="card-corner br"></span>
+        <h3>务实落地</h3>
+        <p>不做概念演示。每个产品都必须在真实客户场景中跑通，用可量化的节水、增产、减碳数据说话。</p>
+      </div>
+      <div class="card value" data-tilt="5" data-reveal style="--d:.15s">
+        <span class="card-corner tl"></span><span class="card-corner br"></span>
+        <h3>数据可信</h3>
+        <p>数据来源可追溯、核算方法符合国标与国际标准。我们拒绝夸大减排数字，客户的合规报告经得起审计。</p>
+      </div>
+      <div class="card value" data-tilt="5" data-reveal style="--d:.25s">
+        <span class="card-corner tl"></span><span class="card-corner br"></span>
+        <h3>长期主义</h3>
+        <p>绿色转型是十年以上的事。我们不为短期增长牺牲产品质量与客户信任，追求与客户共同成长。</p>
+      </div>
+    </div>
+
+    <!-- 招聘横幅：目前投递入口统一走联系页（无独立招聘系统） -->
+    <div class="join-banner" data-reveal="scale">
+      <h2>加入绿境，一起把树种到数据里</h2>
+      <p>我们正在招聘农业算法工程师、光伏运维工程师、前端开发等岗位，欢迎投递。</p>
+      <a class="btn btn-primary" data-magnetic="0.25" href="contact.html">联系我们
+        <svg viewBox="0 0 16 16" fill="none"><path d="M2 8h11m-4-4.5L13.5 8 9 12.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </a>
+    </div>
+  </section>
+
+  <!-- 页脚：四栏链接 + 品牌大字 + 备案信息 -->
+  <footer class="footer">
+    <div class="footer-grid">
+      <div data-reveal>
+        <a class="brand" href="index.html"><svg class="brand-mark" viewBox="0 0 40 40" fill="none"><rect x="9" y="9" width="22" height="22" rx="5" transform="rotate(45 20 20)" stroke="#2dd87a" stroke-width="1.5"/><path d="M20 11c-4.4 4.4-6.6 8-6.6 11.2a6.6 6.6 0 0 0 13.2 0C26.6 19 24.4 15.4 20 11Z" fill="rgba(45,216,122,.22)" stroke="#7af0b8" stroke-width="1.2"/></svg><span class="brand-name">绿境科技<i>VERDANT GREENTECH</i></span></a>
+        <p class="footer-desc">智慧农业物联网 · 分布式光伏管理 · 企业碳管理 SaaS。</p>
+        <div class="footer-contact"><span>📞 400-888-0168</span><span>✉️ contact@verdant-greentech.com</span><span>📍 杭州市余杭区未来科技城</span></div>
+      </div>
+      <div data-reveal style="--d:.08s"><h4>PRODUCTS</h4><div class="footer-links"><a href="products.html#linggeng">灵耕® 农业监测</a><a href="products.html#guanghe">光合® 光伏平台</a><a href="products.html#tanheng">碳衡® 碳管理</a><a href="lab.html">碳足迹计算器</a></div></div>
+      <div data-reveal style="--d:.16s"><h4>COMPANY</h4><div class="footer-links"><a href="about.html">关于我们</a><a href="about.html#milestone">发展历程</a><a href="contact.html">联系我们</a><a href="contact.html#partner">合作伙伴</a></div></div>
+      <div data-reveal style="--d:.24s"><h4>SUPPORT</h4><div class="footer-links"><a href="login.html">登录</a><a href="register.html">免费注册</a><a href="profile.html">控制台</a><a href="contact.html">技术支持</a></div></div>
+    </div>
+    <div class="footer-brand-big" data-reveal="blur">VERDANT</div>
+    <div class="footer-bottom"><span>© 2019–2026 绿境科技（杭州）有限公司 · 浙ICP备2019XXXXXX号</span><span>等保三级 · ISO 27001 · 高新技术企业</span></div>
+  </footer>
+</div>
+
+<!-- 脚本加载顺序：配置 → Firebase SDK → 认证引擎 → 粒子 → 交互引擎（不可调换） -->
+<script src="js/firebase-config.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/particles.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>

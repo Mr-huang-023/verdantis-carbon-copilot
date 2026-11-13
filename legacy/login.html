@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<!-- ==========================================================
+     登录页 login.html
+     ----------------------------------------------------------
+     页面作用：邮箱 + 密码登录（与 Firebase Authentication 对齐）
+     关键实现：
+       · 表单仅做非空校验，格式/业务校验由 js/auth.js 统一负责
+       · 登录成功后播放对勾动画，再跳转 VAuth.nextAfterAuth() 给出的目标页
+       · 未配置 Firebase 时自动降级为「演示模式」（账号存本机 localStorage）
+     布局：左侧品牌卖点区（小屏隐藏）+ 右侧表单区
+     ========================================================== -->
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>登录 · 绿境科技</title>
+
+<!-- 字体预连接与加载（与首页保持一致，命中浏览器缓存后无需重复下载） -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=ZCOOL+XiaoWei&family=Marcellus&family=Noto+Sans+SC:wght@300;400;500&family=JetBrains+Mono:wght@300;400&display=swap" rel="stylesheet">
+
+<!-- 全站设计系统 + 认证页专用样式（浮动标签、强度条、弹窗等） -->
+<link rel="stylesheet" href="css/main.css">
+<link rel="stylesheet" href="css/auth.css">
+</head>
+
+<!-- data-page="login"      → 导航无对应项，因此不额外高亮
+     data-particles="spores" → 使用浮游孢子粒子模式 -->
+<body data-page="login" data-particles="spores">
+
+<!-- 顶部导航（全站共用；登录页不显示「登录」入口） -->
+<header class="nav" id="nav">
+  <a class="brand" href="index.html"><svg class="brand-mark" viewBox="0 0 40 40" fill="none"><rect x="9" y="9" width="22" height="22" rx="5" transform="rotate(45 20 20)" stroke="#2dd87a" stroke-width="1.5"/><path d="M20 11c-4.4 4.4-6.6 8-6.6 11.2a6.6 6.6 0 0 0 13.2 0C26.6 19 24.4 15.4 20 11Z" fill="rgba(45,216,122,.22)" stroke="#7af0b8" stroke-width="1.2"/><path d="M20 14.5V24" stroke="#7af0b8" stroke-width="1.1" stroke-linecap="round"/></svg><span class="brand-name">绿境科技<i>VERDANT GREENTECH</i></span></a>
+  <nav class="nav-links">
+    <a href="index.html" data-nav="home">首页</a>
+    <a href="products.html" data-nav="products">产品方案</a>
+    <a href="lab.html" data-nav="lab">碳计算器</a>
+    <a href="about.html" data-nav="about">关于我们</a>
+    <a href="contact.html" data-nav="contact">联系我们</a>
+  </nav>
+  <div class="nav-right">
+    <!-- 登录态容器：已登录时显示用户头像，未登录时显示「登录 / 免费试用」 -->
+    <div class="nav-auth" id="authArea"></div>
+    <button class="nav-burger" id="burger" aria-label="打开菜单" aria-expanded="false"><span></span><span></span><span></span></button>
+  </div>
+  <div class="mobile-menu" id="mobileMenu">
+    <a href="index.html">首页<em>HOME</em></a><a href="products.html">产品<em>PRODUCTS</em></a><a href="lab.html">碳计算器<em>CARBON</em></a><a href="about.html">关于<em>ABOUT</em></a><a href="contact.html">联系<em>CONTACT</em></a>
+  </div>
+</header>
+
+<!-- 认证页左右分栏外壳（CSS Grid 两列，≤900px 时隐藏左栏） -->
+<main class="auth-shell">
+
+  <!-- ==================== 左侧：品牌与卖点（装饰性内容） ==================== -->
+  <section class="auth-side">
+    <!-- 旋转装饰环：两层反向旋转，与首页 Hero 视觉语言一致 -->
+    <svg class="ring" viewBox="0 0 520 520" fill="none" aria-hidden="true">
+      <g class="a">
+        <circle cx="260" cy="260" r="240" stroke="rgba(122,240,184,.15)" stroke-width="1" stroke-dasharray="4 12"/>
+        <circle cx="260" cy="260" r="190" stroke="rgba(45,216,122,.2)" stroke-width="1"/>
+      </g>
+      <g class="b">
+        <ellipse cx="260" cy="260" rx="160" ry="58" stroke="rgba(81,216,200,.3)" stroke-width="1"/>
+        <ellipse cx="260" cy="260" rx="58" ry="160" stroke="rgba(45,216,122,.25)" stroke-width="1" stroke-dasharray="2 8"/>
+      </g>
+      <!-- 中心叶片：品牌符号放大版 -->
+      <g>
+        <path d="M260 160c-46 46-70 82-70 114a70 70 0 0 0 140 0c0-32-24-68-70-114Z" fill="rgba(45,216,122,.08)" stroke="#2dd87a" stroke-width="1.5"/>
+        <path d="M260 180v130M260 240l36-26M260 275l-34-24M260 305l28-20" stroke="#7af0b8" stroke-width="1.3" stroke-linecap="round"/>
+      </g>
+    </svg>
+
+    <!-- 品牌标识（style 中的 d 为入场延迟变量，单位秒） -->
+    <div class="auth-brand" data-hero-fade style="--d:.8s">
+      <svg viewBox="0 0 40 40" fill="none"><rect x="9" y="9" width="22" height="22" rx="5" transform="rotate(45 20 20)" stroke="#2dd87a" stroke-width="1.5"/><path d="M20 11c-4.4 4.4-6.6 8-6.6 11.2a6.6 6.6 0 0 0 13.2 0C26.6 19 24.4 15.4 20 11Z" fill="rgba(45,216,122,.22)" stroke="#7af0b8" stroke-width="1.2"/></svg>
+      <div><b>绿境科技</b><i>VERDANT GREENTECH</i></div>
+    </div>
+
+    <!-- 主标题：.split 由 main.js 拆字，逐字入场 -->
+    <h1 data-hero-fade style="--d:1.1s" class="split hero-split">欢迎回到<br><span class="hl">绿色控制台</span></h1>
+    <p class="sub" data-hero-fade style="--d:1.35s">登录后即可管理您的农业监测、光伏电站与碳盘查项目。</p>
+
+    <!-- 三条卖点：图标 + 文案，逐条延迟入场 -->
+    <div class="auth-features">
+      <div class="auth-feature" data-hero-fade style="--d:1.55s"><i>🌱</i><span>实时查看田间与电站数据</span></div>
+      <div class="auth-feature" data-hero-fade style="--d:1.7s"><i>⚡</i><span>一键生成减排与收益报告</span></div>
+      <div class="auth-feature" data-hero-fade style="--d:1.85s"><i>🔒</i><span>企业级数据安全与权限管理</span></div>
+    </div>
+  </section>
+
+  <!-- ==================== 右侧：登录表单 ==================== -->
+  <section class="auth-form-side">
+    <div class="auth-form-wrap" data-hero-fade style="--d:1.2s">
+      <p class="crumb"><a href="index.html">首页</a> / LOGIN</p>
+      <h2 class="split hero-split" style="font-size:1.8rem">账号<span class="hl">登录</span></h2>
+
+      <!-- 模式提示：由下方脚本根据 VAuth.isDemo() 动态写入「演示模式」或「云端已就绪」 -->
+      <p class="hint" id="modeHint">正在初始化认证服务…</p>
+
+      <!-- novalidate：关闭浏览器原生校验气泡，统一使用自定义错误提示（体验更一致） -->
+      <form id="loginForm" novalidate>
+        <!-- 邮箱字段：placeholder=" " 是浮动标签生效的必要技巧
+             （:not(:placeholder-shown) 用来判断输入框是否已有内容） -->
+        <div class="f-field">
+          <input type="email" id="email" placeholder=" " autocomplete="email" required>
+          <label for="email">邮箱</label>
+          <span class="f-ic">✉</span>
+          <!-- data-err 容器：脚本通过选择器定位并写入错误文案 -->
+          <div class="err-msg" data-err="email"></div>
+        </div>
+
+        <!-- 密码字段：autocomplete=current-password 便于浏览器密码管理器自动填充 -->
+        <div class="f-field">
+          <input type="password" id="password" placeholder=" " autocomplete="current-password" required>
+          <label for="password">密码</label>
+          <!-- type=button 防止在表单内触发提交；data-toggle 指向要控制的输入框 -->
+          <button type="button" class="toggle-pw" data-toggle="#password" aria-label="显示/隐藏密码">👁</button>
+          <div class="err-msg" data-err="password"></div>
+        </div>
+
+        <!-- 记住我 + 忘记密码 -->
+        <div class="f-options">
+          <label><input type="checkbox" id="remember" checked> 记住我（7 天）</label>
+          <!-- 静态站点暂无重置密码后端，引导用户联系客服 -->
+          <a href="contact.html">忘记密码？</a>
+        </div>
+
+        <button type="submit" class="btn btn-primary f-submit" id="submitBtn" data-magnetic="0.15">登录</button>
+      </form>
+
+      <p class="f-switch">还没有账号？<a href="register.html">立即注册</a></p>
+    </div>
+  </section>
+</main>
+
+<!-- ==================== 登录成功遮罩 ====================
+     默认 opacity:0 + pointer-events:none（不可见且不拦截点击）
+     脚本添加 .show 后淡入，同时触发 SVG 圆圈与对勾的描边动画 -->
+<div class="success-overlay" id="successOverlay">
+  <div class="success-box">
+    <svg class="success-svg" viewBox="0 0 110 110"><circle cx="55" cy="55" r="52"/><path d="M35 56l14 14 26-28"/></svg>
+    <h3>登录成功</h3>
+    <p>正在跳转控制台…</p>
+  </div>
+</div>
+
+<!-- 脚本加载顺序：配置 → Firebase SDK → 认证引擎 → 粒子 → 交互引擎 → 本页逻辑 -->
+<script src="js/firebase-config.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/particles.js"></script>
+<script src="js/main.js"></script>
+<script>
+  /* ---------------- 工具：按字段名写入/清除错误提示 ---------------- */
+  function setErr(field, msg) {
+    const el = document.querySelector(`[data-err="${field}"]`);
+    if (el) el.textContent = msg || ''; // msg 为空即清除该字段提示
+  }
+
+  /* ---------------- 初始化提示文案 ----------------
+     whenReady 保证 Firebase 异步鉴权完成后才判断模式，
+     避免在初始化未完成时误判（云端模式会短暂返回未登录） */
+  VAuth.whenReady(() => {
+    const hint = document.getElementById('modeHint');
+    if (VAuth.isDemo()) {
+      hint.innerHTML = '演示模式：账号保存在本机浏览器，<a href="register.html" style="color:var(--g2)">先注册</a> 即可体验。';
+    } else {
+      hint.textContent = '云端认证已就绪，请使用注册邮箱登录。';
+    }
+  });
+
+  /* ---------------- 密码显隐切换 ----------------
+     按钮的 data-toggle 保存目标输入框选择器；
+     切换 type 后同步更新图标（👁 可见 / 🙈 隐藏） */
+  document.querySelectorAll('.toggle-pw').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const inp = document.querySelector(btn.dataset.toggle);
+      inp.type = inp.type === 'password' ? 'text' : 'password';
+      btn.textContent = inp.type === 'password' ? '👁' : '🙈';
+    });
+  });
+
+  /* ---------------- 提交登录 ----------------
+     流程：清空错误 → 基础非空校验 → 禁用按钮防重复提交
+           → 调用 VAuth.login() → 失败按字段回显 → 成功播放动画并跳转 */
+  document.getElementById('loginForm').addEventListener('submit', async (e) => {
+    e.preventDefault();                     // 阻止页面刷新
+    setErr('email'); setErr('password');    // 重置上一条错误
+
+    const email = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value;
+    const remember = document.getElementById('remember').checked;
+
+    // 仅做空值拦截；邮箱格式与账号是否存在交由认证引擎判断
+    if (!email) return setErr('email', '请输入邮箱');
+    if (!password) return setErr('password', '请输入密码');
+
+    const btn = document.getElementById('submitBtn');
+    btn.disabled = true; btn.textContent = '登录中…';
+
+    // VAuth.login 返回 { ok, errors } 结构，不抛异常，便于统一处理
+    const res = await VAuth.login(email, password, remember);
+    if (!res.ok) {
+      // 取第一个错误字段回显（如 email=该邮箱尚未注册 / password=密码不正确）
+      const f = Object.keys(res.errors)[0] || 'password';
+      setErr(f, res.errors[f]);
+      btn.disabled = false; btn.textContent = '登录';
+      return;
+    }
+
+    // 成功：显示对勾遮罩，900ms 后跳转（时长与 CSS 描边动画匹配）
+    document.getElementById('successOverlay').classList.add('show');
+    setTimeout(() => { window.location.href = VAuth.nextAfterAuth(); }, 900);
+  });
+</script>
+</body>
+</html>

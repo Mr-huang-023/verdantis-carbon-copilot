@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<!-- ==========================================================
+     碳足迹计算器 lab.html
+     ----------------------------------------------------------
+     页面作用：纯前端碳排放估算工具
+       · 左侧：选择活动类型 + 输入数量 → 添加为一条排放记录
+       · 右侧：累计排放总量、等效植树量、各活动排放条形图
+     计算逻辑：
+       · 每条记录排放量 = 数量 × 对应排放因子
+       · 排放因子为公开资料整理的固定值（见 ACTIVITIES 数组与页尾说明）
+       · 树木固碳按 18 kg/年/棵折算，仅作直观类比，不用于正式核算
+     说明：本页数据只存在内存中，刷新即清空；不涉及账号或后端
+     依赖：css/main.css + 本页内联样式与内联脚本
+     ========================================================== -->
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>碳足迹计算器 · 绿境科技</title>
+<meta name="description" content="在线碳足迹计算器，基于真实排放因子计算用电、燃气、燃油等活动的碳排放。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=ZCOOL+XiaoWei&family=Marcellus&family=Noto+Sans+SC:wght@300;400;500&family=JetBrains+Mono:wght@300;400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/main.css">
+<!-- 页面级样式：只在本页生效
+     .calc-wrap   左右两栏（左输入 / 右结果）
+     .calc-panel  左栏，桌面端 sticky 跟随滚动
+     .entries     已添加活动列表（超出高度可滚动）
+     .chart-row   条形图行：名称 / 进度条 / 数值 -->
+<style>
+.page-hero { padding: 170px var(--pad-x) 50px; position: relative; }
+.page-hero .crumb { font-family: var(--f-mono); font-size: .72rem; letter-spacing: .4em; color: var(--g1); }
+.page-hero .crumb a { color: var(--ink-3); transition: color .3s; }
+.page-hero .crumb a:hover { color: var(--g2); }
+.page-hero h1 { font-family: var(--f-disp); font-weight: 400; font-size: clamp(2.4rem, 6vw, 4.4rem); letter-spacing: .1em; margin-top: 18px; }
+.page-hero p { max-width: 560px; color: var(--ink-2); margin-top: 14px; }
+
+.calc-wrap { display: grid; grid-template-columns: 1.1fr 1fr; gap: clamp(30px, 4vw, 60px); align-items: start; }
+.calc-panel { position: sticky; top: 100px; }
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.field { display: flex; flex-direction: column; gap: 8px; }
+.field label { font-family: var(--f-mono); font-size: .7rem; letter-spacing: .22em; color: var(--ink-3); }
+.field input, .field select { width: 100%; background: rgba(4,12,8,.6); border: 1px solid var(--line); border-radius: var(--r-md); padding: 14px 16px; color: var(--g2); font-family: var(--f-mono); font-size: .95rem; letter-spacing: .06em; transition: border-color .3s, box-shadow .3s; outline: none; }
+.field input:focus, .field select:focus { border-color: var(--g1); box-shadow: 0 0 0 3px rgba(45,216,122,.16); }
+.field .unit { font-size: .7rem; color: var(--ink-3); margin-left: 6px; }
+
+.add-row { margin-top: 18px; display: flex; gap: 12px; }
+.add-row .btn { flex: 1; }
+.btn-outline { background: transparent; border: 1px solid var(--g1); color: var(--g1); }
+.btn-outline:hover { background: var(--g1); color: var(--bg-0); }
+
+.entries { margin-top: 26px; display: flex; flex-direction: column; gap: 10px; max-height: 320px; overflow-y: auto; padding-right: 6px; }
+.entry { display: flex; align-items: center; gap: 14px; padding: 14px 18px; border: 1px solid var(--line); border-radius: var(--r-md); background: rgba(5,18,12,.45); animation: entryIn .4s var(--ease-out); }
+@keyframes entryIn { from { opacity: 0; transform: translateY(-8px); } }
+.entry .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; box-shadow: 0 0 8px currentColor; }
+.entry .info { flex: 1; min-width: 0; }
+.entry .info .t { font-size: .88rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.entry .info .u { font-family: var(--f-mono); font-size: .66rem; color: var(--ink-3); letter-spacing: .12em; }
+.entry .em { font-family: var(--f-en); color: var(--g2); font-size: .95rem; flex-shrink: 0; }
+.entry .em small { font-size: .66rem; color: var(--ink-3); margin-left: 2px; }
+.entry .del { background: transparent; border: 0; color: var(--ink-3); cursor: pointer; font-size: 1.1rem; padding: 0 4px; transition: color .3s; }
+.entry .del:hover { color: #ff7676; }
+
+.result { position: sticky; top: 100px; }
+.result-card { padding: 38px 34px; }
+.result-big { text-align: center; margin-bottom: 28px; }
+.result-big .num { font-family: var(--f-en); font-size: clamp(2.8rem, 5vw, 4rem); color: var(--g2); line-height: 1; font-weight: 400; }
+.result-big .unit { font-family: var(--f-mono); font-size: .7rem; letter-spacing: .3em; color: var(--ink-3); margin-top: 8px; }
+.result-big .eq { font-size: .8rem; color: var(--ink-2); margin-top: 14px; }
+
+.chart { display: flex; flex-direction: column; gap: 12px; }
+.chart-row { display: grid; grid-template-columns: 80px 1fr 70px; align-items: center; gap: 12px; }
+.chart-row .n { font-family: var(--f-mono); font-size: .62rem; letter-spacing: .12em; color: var(--ink-2); text-align: right; }
+.chart-row .bar { height: 14px; background: rgba(4,12,8,.6); border: 1px solid var(--line); border-radius: 4px; overflow: hidden; position: relative; }
+.chart-row .bar i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--g1), var(--cyan)); box-shadow: 0 0 10px rgba(45,216,122,.5); transition: width 1s var(--ease-out); }
+.chart-row .v { font-family: var(--f-en); font-size: .82rem; color: var(--g2); }
+
+.note { margin-top: 30px; padding: 18px 22px; border-left: 2px solid var(--g1); background: rgba(45,216,122,.05); border-radius: 0 var(--r-md) var(--r-md) 0; font-size: .8rem; color: var(--ink-2); line-height: 1.8; }
+.note b { color: var(--g2); font-weight: 400; }
+
+@media (max-width: 960px) { .calc-wrap { grid-template-columns: 1fr; } .calc-panel, .result { position: static; } }
+@media (max-width: 560px) { .form-grid { grid-template-columns: 1fr; } .chart-row { grid-template-columns: 64px 1fr 60px; } }
+</style>
+</head>
+<!-- data-page="lab"         → 导航「碳计算器」高亮
+     data-particles="network" → 网络连线粒子，呼应数据计算主题 -->
+<body data-page="lab" data-particles="network">
+
+<header class="nav" id="nav">
+  <a class="brand" href="index.html"><svg class="brand-mark" viewBox="0 0 40 40" fill="none"><rect x="9" y="9" width="22" height="22" rx="5" transform="rotate(45 20 20)" stroke="#2dd87a" stroke-width="1.5"/><path d="M20 11c-4.4 4.4-6.6 8-6.6 11.2a6.6 6.6 0 0 0 13.2 0C26.6 19 24.4 15.4 20 11Z" fill="rgba(45,216,122,.22)" stroke="#7af0b8" stroke-width="1.2"/><path d="M20 14.5V24" stroke="#7af0b8" stroke-width="1.1" stroke-linecap="round"/></svg><span class="brand-name">绿境科技<i>VERDANT GREENTECH</i></span></a>
+  <nav class="nav-links">
+    <a href="index.html" data-nav="home">首页</a>
+    <a href="products.html" data-nav="products">产品方案</a>
+    <a href="lab.html" data-nav="lab">碳计算器</a>
+    <a href="about.html" data-nav="about">关于我们</a>
+    <a href="contact.html" data-nav="contact">联系我们</a>
+  </nav>
+  <div class="nav-right">
+    <div class="nav-auth" id="authArea"></div>
+    <button class="nav-burger" id="burger" aria-label="打开菜单" aria-expanded="false"><span></span><span></span><span></span></button>
+  </div>
+  <div class="mobile-menu" id="mobileMenu">
+    <a href="index.html">首页<em>HOME</em></a><a href="products.html">产品<em>PRODUCTS</em></a><a href="lab.html">碳计算器<em>CARBON</em></a><a href="about.html">关于<em>ABOUT</em></a><a href="contact.html">联系<em>CONTACT</em></a><a href="login.html" data-auth>登录<em>LOGIN</em></a>
+  </div>
+</header>
+
+<!-- page-shell：内容容器；page-enter：入场动画 -->
+<div class="page-shell page-enter">
+
+  <!-- 页头：面包屑 + 标题 + 免责说明（结果仅供估算，正式盘查用碳衡®） -->
+  <section class="page-hero">
+    <p class="crumb" data-hero-fade style="--d:.8s"><a href="index.html">首页</a> / CARBON CALCULATOR</p>
+    <h1 class="split hero-split">碳足迹<span class="hl">计算器</span></h1>
+    <p data-hero-fade style="--d:1.2s">基于真实排放因子（中国电网、化石燃料、民航），快速估算您的碳排放。结果仅供参考，精确盘查请使用碳衡® SaaS。</p>
+  </section>
+
+  <!-- ==================== 计算器主体：左输入 / 右结果 ==================== -->
+  <section class="sec" style="padding-top:10px">
+    <div class="calc-wrap">
+      <!-- 左侧输入面板
+           #actType 下拉项由脚本按 ACTIVITIES 动态生成，HTML 中保持为空
+           #qty 默认 100，方便用户直接点「添加」看到效果 -->
+      <div class="calc-panel" data-reveal="left">
+        <div class="card" style="padding:32px 30px">
+          <span class="card-corner tl"></span><span class="card-corner br"></span>
+          <h3 style="font-family:var(--f-disp);font-weight:400;font-size:1.25rem;letter-spacing:.12em;margin-bottom:22px">添加排放活动</h3>
+          <div class="form-grid">
+            <div class="field">
+              <label>活动类型</label>
+              <select id="actType"></select>
+            </div>
+            <div class="field">
+              <label id="qtyLabel">数量</label>
+              <input type="number" id="qty" min="0" step="0.1" value="100" placeholder="请输入">
+            </div>
+          </div>
+          <div class="add-row">
+            <button class="btn btn-primary" id="addBtn" data-magnetic="0.15">添加</button>
+            <button class="btn btn-outline" id="clearBtn">清空</button>
+          </div>
+
+          <div class="entries" id="entries">
+            <div style="text-align:center;color:var(--ink-3);font-size:.82rem;padding:26px 0">暂无活动，添加后将在此列出</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 右侧结果面板：总量 + 等效植树 + 分项条形图（全部由脚本渲染） -->
+      <div class="result" data-reveal="right">
+        <div class="card result-card" style="padding:38px 34px">
+          <span class="card-corner tl"></span><span class="card-corner br"></span>
+          <div class="result-big">
+            <div class="num" id="totalCo2">0</div>
+            <div class="unit">KG CO₂ 当量</div>
+            <div class="eq" id="eq">相当于种植 <b id="trees">0</b> 棵树一年的固碳量</div>
+          </div>
+          <div class="chart" id="chart"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 排放因子来源说明：与 ACTIVITIES 数组中的数值必须一一对应，
+         修改任一处都要同步另一处，避免「说明与实际计算不一致」 -->
+    <div class="note" data-reveal>
+      <b>排放因子来源说明：</b>用电 0.581 kgCO₂/kWh（2022 年中国电网平均）、天然气 2.16 kgCO₂/m³、汽油 2.27 kgCO₂/L、柴油 2.68 kgCO₂/L、原煤 2.46 kgCO₂/kg、短途飞行 0.255 kgCO₂/人·公里、长途飞行 0.139 kgCO₂/人·公里。<br>
+      树木固碳估算按每棵成年树每年吸收约 18 kg CO₂ 折算。以上数值为公开资料整理，实际核算请以《企业温室气体排放核算与报告指南》及相关行业标准为准。
+    </div>
+  </section>
+
+  <!-- 页脚：四栏链接 + 品牌大字 + 备案信息 -->
+  <footer class="footer">
+    <div class="footer-grid">
+      <div data-reveal>
+        <a class="brand" href="index.html"><svg class="brand-mark" viewBox="0 0 40 40" fill="none"><rect x="9" y="9" width="22" height="22" rx="5" transform="rotate(45 20 20)" stroke="#2dd87a" stroke-width="1.5"/><path d="M20 11c-4.4 4.4-6.6 8-6.6 11.2a6.6 6.6 0 0 0 13.2 0C26.6 19 24.4 15.4 20 11Z" fill="rgba(45,216,122,.22)" stroke="#7af0b8" stroke-width="1.2"/></svg><span class="brand-name">绿境科技<i>VERDANT GREENTECH</i></span></a>
+        <p class="footer-desc">智慧农业物联网 · 分布式光伏管理 · 企业碳管理 SaaS。</p>
+        <div class="footer-contact"><span>📞 400-888-0168</span><span>✉️ contact@verdant-greentech.com</span><span>📍 杭州市余杭区未来科技城</span></div>
+      </div>
+      <div data-reveal style="--d:.08s"><h4>PRODUCTS</h4><div class="footer-links"><a href="products.html#linggeng">灵耕® 农业监测</a><a href="products.html#guanghe">光合® 光伏平台</a><a href="products.html#tanheng">碳衡® 碳管理</a><a href="lab.html">碳足迹计算器</a></div></div>
+      <div data-reveal style="--d:.16s"><h4>COMPANY</h4><div class="footer-links"><a href="about.html">关于我们</a><a href="about.html#milestone">发展历程</a><a href="contact.html">联系我们</a><a href="contact.html#partner">合作伙伴</a></div></div>
+      <div data-reveal style="--d:.24s"><h4>SUPPORT</h4><div class="footer-links"><a href="login.html">登录</a><a href="register.html">免费注册</a><a href="profile.html">控制台</a><a href="contact.html">技术支持</a></div></div>
+    </div>
+    <div class="footer-brand-big" data-reveal="blur">VERDANT</div>
+    <div class="footer-bottom"><span>© 2019–2026 绿境科技（杭州）有限公司 · 浙ICP备2019XXXXXX号</span><span>等保三级 · ISO 27001 · 高新技术企业</span></div>
+  </footer>
+</div>
+
+<script>
+  /* ==================== 排放因子数据表 ====================
+     factor 含义：每消耗 1 个 unit 所产生的 CO₂ 当量（kg）
+       例如电力 0.581 表示 1 kWh 排放 0.581 kg CO₂
+     color  仅用于列表圆点与条形图着色，不参与计算
+     数值为公开资料整理的近似值，正式核算需按行业标准取数 */
+  // 真实排放因子（kg CO2 每单位）
+  const ACTIVITIES = [
+    { id: 'elec',   name: '电力消耗', unit: 'kWh',      factor: 0.581, color: '#7af0b8' },
+    { id: 'gas',    name: '天然气',   unit: 'm³',       factor: 2.16,  color: '#f0c874' },
+    { id: 'gasoline', name: '汽油',   unit: 'L',        factor: 2.27,  color: '#51d8c8' },
+    { id: 'diesel', name: '柴油',     unit: 'L',        factor: 2.68,  color: '#2dd87a' },
+    { id: 'coal',   name: '原煤',     unit: 'kg',       factor: 2.46,  color: '#9cffb0' },
+    { id: 'shortF', name: '短途飞行', unit: '人·公里',   factor: 0.255, color: '#ffd98a' },
+    { id: 'longF',  name: '长途飞行', unit: '人·公里',   factor: 0.139, color: '#c0ffee' },
+    { id: 'car',    name: '汽油车',   unit: '公里',     factor: 0.184, color: '#b6f5d0' }
+  ];
+
+  /* ---------- DOM 引用缓存：只查询一次，后续渲染直接复用 ---------- */
+  const sel = document.getElementById('actType');
+  const qty = document.getElementById('qty');
+  const qtyLabel = document.getElementById('qtyLabel');
+  const entriesEl = document.getElementById('entries');
+  const totalEl = document.getElementById('totalCo2');
+  const treesEl = document.getElementById('trees');
+  const chartEl = document.getElementById('chart');
+
+  /* ---------- 用 ACTIVITIES 填充下拉框 ----------
+     option.value 存活动 id（用于查找因子），显示文本附带单位，减少输入歧义 */
+  ACTIVITIES.forEach(a => {
+    const o = document.createElement('option');
+    o.value = a.id; o.textContent = `${a.name}  (${a.unit})`;
+    sel.appendChild(o);
+  });
+
+  /* ---------- 切换活动类型时，同步更新数量输入框的单位提示 ---------- */
+  function updLabel() {
+    const a = ACTIVITIES.find(x => x.id === sel.value);
+    qtyLabel.textContent = `数量 (${a.unit})`;
+  }
+  sel.addEventListener('change', updLabel);
+  updLabel();
+
+  /* ---------- 排放记录：仅保存在内存，刷新页面即清空 ----------
+     每条记录结构 = ACTIVITIES 项 + qty（数量）+ emission（已算好的排放量） */
+  let entries = [];
+
+  /* ---------- 添加一条排放记录 ----------
+     校验：数量必须为大于 0 的数字（min/step 只是浏览器提示，不能依赖）
+     非法时把输入框边框标红并直接返回，不写入记录 */
+  function addEntry() {
+    const v = parseFloat(qty.value);
+    if (!(v > 0)) { qty.style.borderColor = '#ff7676'; return; }
+    qty.style.borderColor = '';
+    const a = ACTIVITIES.find(x => x.id === sel.value);
+    entries.push({ id: Date.now() + Math.random(), ...a, qty: v, emission: a.factor * v });
+    qty.value = '';
+    render();
+  }
+
+  /* ---------- 事件绑定：按钮点击、清空、回车快捷添加 ---------- */
+  document.getElementById('addBtn').addEventListener('click', addEntry);
+  document.getElementById('clearBtn').addEventListener('click', () => { entries = []; render(); });
+  qty.addEventListener('keydown', e => { if (e.key === 'Enter') addEntry(); });
+
+  /* ==================== 统一渲染函数 ====================
+     所有增删操作都通过重新渲染列表来保证界面与 entries 数组一致，
+     数据量小（用户手动添加），整表重绘的开销可以忽略 */
+  function render() {
+    // 空状态：恢复占位文案，同时把总量、植树量、图表清零
+    if (entries.length === 0) {
+      entriesEl.innerHTML = '<div style="text-align:center;color:var(--ink-3);font-size:.82rem;padding:26px 0">暂无活动，添加后将在此列出</div>';
+      totalEl.textContent = '0'; treesEl.textContent = '0'; chartEl.innerHTML = '';
+      return;
+    }
+    // 逐条重建列表项（名称 / 数量×因子 / 排放量 / 删除按钮）
+    entriesEl.innerHTML = '';
+    entries.forEach(e => {
+      const d = document.createElement('div');
+      d.className = 'entry';
+      d.innerHTML = `<span class="dot" style="background:${e.color};color:${e.color}"></span>
+        <div class="info"><div class="t">${e.name}</div><div class="u">${e.qty} ${e.unit} × ${e.factor} kgCO₂</div></div>
+        <div class="em">${e.emission.toFixed(1)}<small>kg</small></div>
+        <button class="del" data-id="${e.id}" aria-label="删除">×</button>`;
+      entriesEl.appendChild(d);
+    });
+    // 删除按钮按记录 id 过滤数组，再整体重绘
+    entriesEl.querySelectorAll('.del').forEach(b => b.addEventListener('click', () => {
+      entries = entries.filter(e => String(e.id) !== b.dataset.id); render();
+    }));
+
+    /* 汇总：总排放量保留 1 位小数；等效植树 = 总量 ÷ 18（kg/棵·年），四舍五入 */
+    const total = entries.reduce((s, e) => s + e.emission, 0);
+    totalEl.textContent = total.toFixed(1);
+    treesEl.textContent = Math.round(total / 18);
+
+    // 条形图：以当前最大排放量为满格基准（max 至少为 1，避免除零）
+    const max = Math.max(...entries.map(e => e.emission), 1);
+    chartEl.innerHTML = entries.map(e => `
+      <div class="chart-row">
+        <div class="n">${e.name}</div>
+        <div class="bar"><i style="width:${(e.emission/max*100).toFixed(1)}%"></i></div>
+        <div class="v">${e.emission.toFixed(1)}</div>
+      </div>`).join('');
+  }
+  render();
+</script>
+<!-- 计算逻辑脚本放在交互引擎之前：只依赖本页 DOM（已解析完毕），
+     不依赖 VAuth / main.js / particles.js，因此顺序无冲突 -->
+<script src="js/firebase-config.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/particles.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>

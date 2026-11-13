@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<!-- ==========================================================
+     控制台 profile.html
+     ----------------------------------------------------------
+     页面作用：登录后的会员中心
+       · 左侧：用户资料卡（首字母头像 / 用户名 / 邮箱 / 账号类型 / 退出登录）
+       · 右侧：数据看板（4 个指标卡）、快捷入口、最近动态
+     鉴权要点（关键）：
+       · Firebase 的 onAuthStateChanged 是异步回调，无法同步拿到登录态
+       · 因此本页必须用 VAuth.whenReady(cb) 等待认证就绪后再判断
+       · 未登录 → 跳转 login.html；已登录 → 显示 #profileContent 并渲染资料
+     依赖：css/main.css、css/auth.css、js/auth.js、js/main.js、js/particles.js
+     ========================================================== -->
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>控制台 · 绿境科技</title>
+<meta name="description" content="绿境科技会员控制台。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=ZCOOL+XiaoWei&family=Marcellus&family=Noto+Sans+SC:wght@300;400;500&family=JetBrains+Mono:wght@300;400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/main.css">
+<link rel="stylesheet" href="css/auth.css">
+</head>
+
+<!-- data-page="profile"     → 页面标识（导航无对应项，因此不额外高亮）
+     data-particles="wisps" → 控制台用「气流丝线」粒子，动效更克制，避免干扰数据阅读 -->
+<body data-page="profile" data-particles="wisps">
+
+<!-- 顶部导航：结构与全站一致，#authArea 由 main.js 的 renderAuthArea() 填入登录态 -->
+<header class="nav" id="nav">
+  <a class="brand" href="index.html"><svg class="brand-mark" viewBox="0 0 40 40" fill="none"><rect x="9" y="9" width="22" height="22" rx="5" transform="rotate(45 20 20)" stroke="#2dd87a" stroke-width="1.5"/><path d="M20 11c-4.4 4.4-6.6 8-6.6 11.2a6.6 6.6 0 0 0 13.2 0C26.6 19 24.4 15.4 20 11Z" fill="rgba(45,216,122,.22)" stroke="#7af0b8" stroke-width="1.2"/><path d="M20 14.5V24" stroke="#7af0b8" stroke-width="1.1" stroke-linecap="round"/></svg><span class="brand-name">绿境科技<i>VERDANT GREENTECH</i></span></a>
+  <nav class="nav-links">
+    <a href="index.html" data-nav="home">首页</a>
+    <a href="products.html" data-nav="products">产品方案</a>
+    <a href="lab.html" data-nav="lab">碳计算器</a>
+    <a href="about.html" data-nav="about">关于我们</a>
+    <a href="contact.html" data-nav="contact">联系我们</a>
+  </nav>
+  <div class="nav-right">
+    <div class="nav-auth" id="authArea"></div>
+    <button class="nav-burger" id="burger" aria-label="打开菜单" aria-expanded="false"><span></span><span></span><span></span></button>
+  </div>
+  <div class="mobile-menu" id="mobileMenu">
+    <a href="index.html">首页<em>HOME</em></a><a href="products.html">产品<em>PRODUCTS</em></a><a href="lab.html">碳计算器<em>CARBON</em></a><a href="about.html">关于<em>ABOUT</em></a><a href="contact.html">联系<em>CONTACT</em></a><a href="profile.html" data-auth>控制台<em>PROFILE</em></a>
+  </div>
+</header>
+
+<!-- page-shell：内容容器；page-enter：触发页面入场动画 -->
+<main class="page-shell page-enter">
+  <!-- 页头：面包屑 + 标题（.split 由 main.js 拆字，逐字入场） -->
+  <section class="profile-hero">
+    <p class="crumb" data-hero-fade style="--d:.8s"><a href="index.html">首页</a> / DASHBOARD</p>
+    <h1 class="split hero-split">控制台</h1>
+  </section>
+
+  <section class="sec" style="padding-top:10px">
+    <!-- 鉴权进行中的占位提示：whenReady 回调触发后立即隐藏 -->
+    <div id="loadingState" style="text-align:center;padding:80px 0;color:var(--ink-3)">
+      <div style="font-family:var(--f-mono);font-size:.8rem;letter-spacing:.3em">正在验证登录状态…</div>
+    </div>
+
+    <!-- 资料区容器：默认 display:none，确认已登录后才显示，避免未授权内容闪烁 -->
+    <div id="profileContent" style="display:none">
+      <div class="profile-grid">
+        <!-- 用户资料卡：头像取用户名首字母（由本页脚本写入） -->
+        <div class="card profile-card" data-reveal="left">
+          <span class="card-corner tl"></span><span class="card-corner br"></span>
+          <div class="avatar" id="avatar">?</div>
+          <h3 id="userName">—</h3>
+          <div class="email" id="userEmail">—</div>
+          <div class="profile-meta">
+            <div class="row"><span class="k">账号类型</span><span class="v" id="userType">—</span></div>
+            <div class="row"><span class="k">认证方式</span><span class="v" id="authMode">—</span></div>
+            <div class="row"><span class="k">注册时间</span><span class="v" id="userCreated">—</span></div>
+          </div>
+          <button class="btn btn-outline" id="logoutBtn" style="width:100%;margin-top:8px">退出登录</button>
+        </div>
+
+        <div>
+          <!-- 4 个指标卡：data-count 为数字滚动目标值，data-suffix 为单位后缀；
+               实际数字由本页脚本的 setInterval 动画写入（非服务端真实数据） -->
+          <div class="dash-grid" data-reveal="right">
+            <div class="card dash-card"><span class="card-corner tl"></span><span class="card-corner br"></span>
+              <div class="k">服务项目</div>
+              <div class="v num" data-count="3" data-suffix=" 个">0</div>
+              <div class="trend">↑ 较上月新增 1 个</div>
+            </div>
+            <div class="card dash-card"><span class="card-corner tl"></span><span class="card-corner br"></span>
+              <div class="k">累计减排</div>
+              <div class="v num" data-count="0" data-suffix=" t CO₂">0</div>
+              <div class="trend">本月目标 12 t</div>
+            </div>
+            <div class="card dash-card"><span class="card-corner tl"></span><span class="card-corner br"></span>
+              <div class="k">监测点位</div>
+              <div class="v num" data-count="0" data-suffix=" 个">0</div>
+              <div class="trend">在线率 99.2%</div>
+            </div>
+            <div class="card dash-card"><span class="card-corner tl"></span><span class="card-corner br"></span>
+              <div class="k">未读通知</div>
+              <div class="v"><span class="num" data-count="0">0</span></div>
+              <div class="trend">系统运行正常</div>
+            </div>
+          </div>
+
+          <!-- 快捷入口卡片：d 延迟变量控制滚动入场延迟（秒） -->
+          <div class="card" style="margin-top:22px;padding:30px;--d:.15s" data-reveal="right">
+            <span class="card-corner tl"></span><span class="card-corner br"></span>
+            <h3 style="font-family:var(--f-disp);font-weight:400;font-size:1.2rem;letter-spacing:.12em;margin-bottom:18px">快捷入口</h3>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px">
+              <a class="btn btn-ghost btn-sm" href="lab.html" style="justify-content:center">碳足迹计算器</a>
+              <a class="btn btn-ghost btn-sm" href="products.html" style="justify-content:center">产品方案</a>
+              <a class="btn btn-ghost btn-sm" href="contact.html" style="justify-content:center">联系顾问</a>
+              <a class="btn btn-ghost btn-sm" href="about.html" style="justify-content:center">了解绿境</a>
+            </div>
+          </div>
+
+          <!-- 最近动态卡片（静态示例内容；时间戳由脚本写入当前时间） -->
+          <div class="card" style="margin-top:22px;padding:30px;--d:.3s" data-reveal="right">
+            <span class="card-corner tl"></span><span class="card-corner br"></span>
+            <h3 style="font-family:var(--f-disp);font-weight:400;font-size:1.2rem;letter-spacing:.12em;margin-bottom:14px">最近动态</h3>
+            <div style="display:flex;flex-direction:column;gap:14px">
+              <div style="display:flex;gap:14px;padding-bottom:14px;border-bottom:1px solid var(--line)">
+                <div style="width:8px;height:8px;border-radius:50%;background:var(--g1);box-shadow:0 0 8px var(--g1);margin-top:7px;flex-shrink:0"></div>
+                <div>
+                  <div style="font-size:.9rem">欢迎加入绿境科技，您的账号已创建成功。</div>
+                  <div style="font-family:var(--f-mono);font-size:.66rem;color:var(--ink-3);letter-spacing:.12em;margin-top:4px" id="activityTime">—</div>
+                </div>
+              </div>
+              <div style="display:flex;gap:14px;padding-bottom:14px;border-bottom:1px solid var(--line)">
+                <div style="width:8px;height:8px;border-radius:50%;background:var(--cyan);box-shadow:0 0 8px var(--cyan);margin-top:7px;flex-shrink:0"></div>
+                <div>
+                  <div style="font-size:.9rem">您可免费使用碳足迹计算器与数据看板。</div>
+                  <div style="font-family:var(--f-mono);font-size:.66rem;color:var(--ink-3);letter-spacing:.12em;margin-top:4px">系统消息</div>
+                </div>
+              </div>
+              <div style="display:flex;gap:14px">
+                <div style="width:8px;height:8px;border-radius:50%;background:var(--gold);box-shadow:0 0 8px var(--gold);margin-top:7px;flex-shrink:0"></div>
+                <div>
+                  <div style="font-size:.9rem">如需部署农业监测或光伏项目，请<a href="contact.html" style="color:var(--g2)">联系销售</a>。</div>
+                  <div style="font-family:var(--f-mono);font-size:.66rem;color:var(--ink-3);letter-spacing:.12em;margin-top:4px">销售顾问</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- 页脚：全站共用结构；#authArea 之外的链接均为真实页面路径 -->
+<footer class="footer">
+  <div class="footer-grid">
+    <div>
+      <a class="brand" href="index.html"><svg class="brand-mark" viewBox="0 0 40 40" fill="none"><rect x="9" y="9" width="22" height="22" rx="5" transform="rotate(45 20 20)" stroke="#2dd87a" stroke-width="1.5"/><path d="M20 11c-4.4 4.4-6.6 8-6.6 11.2a6.6 6.6 0 0 0 13.2 0C26.6 19 24.4 15.4 20 11Z" fill="rgba(45,216,122,.22)" stroke="#7af0b8" stroke-width="1.2"/></svg><span class="brand-name">绿境科技<i>VERDANT GREENTECH</i></span></a>
+      <p class="footer-desc">智慧农业物联网 · 分布式光伏管理 · 企业碳管理 SaaS。</p>
+    </div>
+    <div><h4>PRODUCTS</h4><div class="footer-links"><a href="products.html#linggeng">灵耕® 农业监测</a><a href="products.html#guanghe">光合® 光伏平台</a><a href="products.html#tanheng">碳衡® 碳管理</a></div></div>
+    <div><h4>COMPANY</h4><div class="footer-links"><a href="about.html">关于我们</a><a href="contact.html">联系我们</a></div></div>
+  </div>
+  <div class="footer-bottom"><span>© 2019–2026 绿境科技（杭州）有限公司</span></div>
+</footer>
+
+<script src="js/firebase-config.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/particles.js"></script>
+<script src="js/main.js"></script>
+<script>
+  /* ---------------- 鉴权守卫 + 资料渲染 ----------------
+     VAuth.whenReady(cb) 的回调参数 user：
+       · 未登录 → null
+       · 已登录 → 规范化对象 { id, email, username }
+     注意：所有 DOM 操作都必须在回调内部执行，否则可能在认证就绪前运行而报错 */
+  VAuth.whenReady((user) => {
+    document.getElementById('loadingState').style.display = 'none';
+    // 未登录：提示后替换当前历史记录，避免用户点「返回」又回到控制台
+    if (!user) {
+      if (window.vToast) window.vToast('请先登录', 'warn');
+      window.location.replace('login.html');
+      return;
+    }
+    /* 渲染用户信息
+       username 优先；云端账号若未设置 displayName 则退回邮箱前缀
+       头像取首字符转大写，纯本地计算，不请求任何外部头像服务 */
+    document.getElementById('profileContent').style.display = 'block';
+    const name = user.username || (user.email ? user.email.split('@')[0] : '用户');
+    document.getElementById('avatar').textContent = name.charAt(0).toUpperCase();
+    document.getElementById('userName').textContent = name;
+    document.getElementById('userEmail').textContent = user.email || '—';
+    document.getElementById('userType').textContent = VAuth.isDemo() ? '本地账号' : '邮箱账号';
+    document.getElementById('authMode').textContent = VAuth.isDemo() ? '本地演示' : 'Firebase 云端';
+    document.getElementById('userCreated').textContent = '—';
+    document.getElementById('activityTime').textContent = new Date().toLocaleString('zh-CN');
+
+    /* 数字滚动动画：把 data-count 目标值分 40 步递增，每 20ms 一步
+       整数目标取整显示，小数目标保留 1 位；到达目标后清除定时器 */
+    document.querySelectorAll('.num').forEach(el => {
+      const target = parseFloat(el.dataset.count) || 0;
+      const suffix = el.dataset.suffix || '';
+      let cur = 0; const step = Math.max(1, target / 40);
+      const t = setInterval(() => {
+        cur += step;
+        if (cur >= target) { cur = target; clearInterval(t); }
+        el.textContent = (target % 1 === 0 ? Math.floor(cur) : cur.toFixed(1)) + suffix;
+      }, 20);
+    });
+  });
+
+  /* ---------------- 退出登录 ----------------
+     VAuth.logout() 同时清理 Firebase 会话与演示模式会话，
+     然后回首页（首页不需要登录态，体验更自然） */
+  document.getElementById('logoutBtn').addEventListener('click', async () => {
+    await VAuth.logout();
+    if (window.vToast) window.vToast('已退出登录');
+    window.location.href = 'index.html';
+  });
+</script>
+</body>
+</html>

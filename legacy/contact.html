@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<!-- ==========================================================
+     联系我们 contact.html
+     ----------------------------------------------------------
+     页面作用：联系方式 + 咨询表单 + 合作伙伴展示
+       · 左栏：地址 / 服务热线 / 邮箱 / 服务时间
+       · 右栏：姓名、手机、邮箱、意向产品、留言的咨询表单
+       · 底部：合作伙伴名单 #partner（页脚链接可直达）
+     表单实现（重要）：
+       · 纯静态站点没有后端，提交时用 mailto: 唤起本机邮件客户端
+       · 校验依赖浏览器原生 required / pattern（见各输入框属性）
+       · 生产环境建议替换为 Formspree、FormSubmit 或自建接口
+     依赖：css/main.css + 本页内联样式与内联表单脚本
+     ========================================================== -->
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>联系我们 · 绿境科技</title>
+<meta name="description" content="联系绿境科技，获取产品试用、商务合作与技术支持。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=ZCOOL+XiaoWei&family=Marcellus&family=Noto+Sans+SC:wght@300;400;500&family=JetBrains+Mono:wght@300;400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/main.css">
+<!-- 页面级样式：只在本页生效
+     .contact-grid  左右两栏（信息 / 表单）
+     .info-item     联系信息卡（悬停上浮 + 描边高亮）
+     .hours         服务时间表
+     .field-row     表单两列行（窄屏降为单列） -->
+<style>
+.page-hero { padding: 170px var(--pad-x) 50px; position: relative; }
+.page-hero .crumb { font-family: var(--f-mono); font-size: .72rem; letter-spacing: .4em; color: var(--g1); }
+.page-hero .crumb a { color: var(--ink-3); transition: color .3s; }
+.page-hero .crumb a:hover { color: var(--g2); }
+.page-hero h1 { font-family: var(--f-disp); font-weight: 400; font-size: clamp(2.4rem, 6vw, 4.4rem); letter-spacing: .1em; margin-top: 18px; }
+.page-hero p { max-width: 560px; color: var(--ink-2); margin-top: 14px; }
+
+.contact-grid { display: grid; grid-template-columns: 1fr 1.1fr; gap: clamp(30px, 4vw, 60px); align-items: start; }
+.info-list { display: flex; flex-direction: column; gap: 16px; margin-bottom: 36px; }
+.info-item { display: flex; align-items: flex-start; gap: 16px; padding: 20px 22px; border: 1px solid var(--line); border-radius: var(--r-md); background: rgba(5,18,12,.4); transition: border-color .3s, transform .3s var(--ease-out); }
+.info-item:hover { border-color: var(--g1); transform: translateY(-2px); }
+.info-item .ic { width: 42px; height: 42px; border-radius: 11px; background: rgba(45,216,122,.1); border: 1px solid var(--line); display: grid; place-items: center; flex-shrink: 0; font-size: 1.15rem; }
+.info-item .t { font-family: var(--f-mono); font-size: .64rem; letter-spacing: .24em; color: var(--ink-3); }
+.info-item .v { color: var(--g2); font-size: 1rem; margin-top: 4px; word-break: break-all; }
+.info-item .s { color: var(--ink-2); font-size: .78rem; margin-top: 4px; }
+
+.hours { padding: 22px 24px; border: 1px solid var(--line); border-radius: var(--r-md); background: rgba(5,18,12,.4); }
+.hours h4 { font-family: var(--f-disp); font-weight: 400; font-size: 1rem; letter-spacing: .12em; margin-bottom: 14px; }
+.hours .row { display: flex; justify-content: space-between; padding: 6px 0; font-size: .85rem; color: var(--ink-2); }
+.hours .row b { color: var(--g2); font-weight: 400; }
+
+.contact-form { display: flex; flex-direction: column; gap: 16px; }
+.field { display: flex; flex-direction: column; gap: 8px; }
+.field label { font-family: var(--f-mono); font-size: .7rem; letter-spacing: .22em; color: var(--ink-3); }
+.field input, .field textarea, .field select { width: 100%; background: rgba(4,12,8,.6); border: 1px solid var(--line); border-radius: var(--r-md); padding: 14px 16px; color: var(--g2); font-family: var(--f-mono); font-size: .9rem; transition: border-color .3s, box-shadow .3s; outline: none; }
+.field textarea { resize: vertical; min-height: 120px; font-family: var(--f-body); }
+.field input:focus, .field textarea:focus, .field select:focus { border-color: var(--g1); box-shadow: 0 0 0 3px rgba(45,216,122,.16); }
+.field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+.partner-strip { margin-top: clamp(60px, 8vw, 100px); text-align: center; }
+.partner-strip h3 { font-family: var(--f-disp); font-weight: 400; font-size: clamp(1.4rem, 3vw, 2rem); letter-spacing: .12em; }
+.partner-strip .ps { color: var(--ink-2); margin: 10px 0 34px; font-size: .9rem; }
+.logos { display: flex; justify-content: center; gap: 36px; flex-wrap: wrap; opacity: .55; }
+.logos span { font-family: var(--f-en); font-size: 1.1rem; letter-spacing: .18em; color: var(--ink-2); padding: 14px 22px; border: 1px solid var(--line); border-radius: var(--r-md); }
+
+@media (max-width: 960px) { .contact-grid { grid-template-columns: 1fr; } .page-hero { padding-top: 130px; } }
+@media (max-width: 560px) { .field-row { grid-template-columns: 1fr; } }
+</style>
+</head>
+<!-- data-page="contact"     → 导航「联系我们」高亮
+     data-particles="wisps" → 气流丝线粒子，营造平和、可信的沟通氛围 -->
+<body data-page="contact" data-particles="wisps">
+
+<header class="nav" id="nav">
+  <a class="brand" href="index.html"><svg class="brand-mark" viewBox="0 0 40 40" fill="none"><rect x="9" y="9" width="22" height="22" rx="5" transform="rotate(45 20 20)" stroke="#2dd87a" stroke-width="1.5"/><path d="M20 11c-4.4 4.4-6.6 8-6.6 11.2a6.6 6.6 0 0 0 13.2 0C26.6 19 24.4 15.4 20 11Z" fill="rgba(45,216,122,.22)" stroke="#7af0b8" stroke-width="1.2"/><path d="M20 14.5V24" stroke="#7af0b8" stroke-width="1.1" stroke-linecap="round"/></svg><span class="brand-name">绿境科技<i>VERDANT GREENTECH</i></span></a>
+  <nav class="nav-links">
+    <a href="index.html" data-nav="home">首页</a>
+    <a href="products.html" data-nav="products">产品方案</a>
+    <a href="lab.html" data-nav="lab">碳计算器</a>
+    <a href="about.html" data-nav="about">关于我们</a>
+    <a href="contact.html" data-nav="contact">联系我们</a>
+  </nav>
+  <div class="nav-right">
+    <div class="nav-auth" id="authArea"></div>
+    <button class="nav-burger" id="burger" aria-label="打开菜单" aria-expanded="false"><span></span><span></span><span></span></button>
+  </div>
+  <div class="mobile-menu" id="mobileMenu">
+    <a href="index.html">首页<em>HOME</em></a><a href="products.html">产品<em>PRODUCTS</em></a><a href="lab.html">碳计算器<em>CARBON</em></a><a href="about.html">关于<em>ABOUT</em></a><a href="contact.html">联系<em>CONTACT</em></a><a href="login.html" data-auth>登录<em>LOGIN</em></a>
+  </div>
+</header>
+
+<!-- page-shell：内容容器；page-enter：入场动画 -->
+<div class="page-shell page-enter">
+
+  <!-- 页头：面包屑 + 标题 + 服务承诺（1 个工作日内回复） -->
+  <section class="page-hero">
+    <p class="crumb" data-hero-fade style="--d:.8s"><a href="index.html">首页</a> / CONTACT</p>
+    <h1 class="split hero-split">联系<span class="hl">我们</span></h1>
+    <p data-hero-fade style="--d:1.2s">产品试用、商务合作、技术支持或媒体采访，欢迎随时联系，我们将在 1 个工作日内回复。</p>
+  </section>
+
+  <!-- ==================== 联系方式 + 咨询表单 ==================== -->
+  <section class="sec" style="padding-top:10px">
+    <div class="contact-grid">
+      <!-- 左栏：三条联系信息 + 服务时间 -->
+      <div data-reveal="left">
+        <div class="info-list">
+          <div class="info-item">
+            <div class="ic">📍</div>
+            <div>
+              <div class="t">HEADQUARTERS</div>
+              <div class="v">杭州市余杭区未来科技城</div>
+              <div class="s">绿境大厦 18 层</div>
+            </div>
+          </div>
+          <div class="info-item">
+            <div class="ic">📞</div>
+            <div>
+              <div class="t">SERVICE HOTLINE</div>
+              <div class="v">400-888-0168</div>
+              <div class="s">工作日 9:00–18:00</div>
+            </div>
+          </div>
+          <div class="info-item">
+            <div class="ic">✉️</div>
+            <div>
+              <div class="t">EMAIL</div>
+              <div class="v">contact@verdant-greentech.com</div>
+              <div class="s">商务合作 / 技术支持</div>
+            </div>
+          </div>
+        </div>
+        <!-- 服务时间：与热线说明保持一致，周日常见咨询仅走线上工单 -->
+        <div class="hours">
+          <h4>服务时间</h4>
+          <div class="row"><span>周一至周五</span><b>09:00 – 18:00</b></div>
+          <div class="row"><span>周六</span><b>10:00 – 16:00</b></div>
+          <div class="row"><span>周日及法定假日</span><b>仅线上工单</b></div>
+        </div>
+      </div>
+
+      <!-- 右栏：咨询表单
+           校验全部依赖浏览器原生属性（无需额外 JS 校验库）：
+             · name    必填，至少 2 个字符
+             · phone   必填，匹配 ^1[3-9]\d{9}$（中国大陆 11 位手机号）
+             · message 必填，至少 10 个字符
+             · email / product 为选填 -->
+      <div data-reveal="right">
+        <div class="card" style="padding:36px 34px">
+          <span class="card-corner tl"></span><span class="card-corner br"></span>
+          <h3 style="font-family:var(--f-disp);font-weight:400;font-size:1.3rem;letter-spacing:.12em;margin-bottom:22px">发送消息</h3>
+          <form class="contact-form" id="contactForm">
+            <div class="field-row">
+              <div class="field">
+                <label>姓名 *</label>
+                <input type="text" name="name" required minlength="2" placeholder="您的姓名">
+              </div>
+              <div class="field">
+                <label>手机 *</label>
+                <input type="tel" name="phone" required pattern="^1[3-9]\d{9}$" placeholder="11 位手机号">
+              </div>
+            </div>
+            <div class="field-row">
+              <div class="field">
+                <label>邮箱</label>
+                <input type="email" name="email" placeholder="可选">
+              </div>
+              <div class="field">
+                <label>意向产品</label>
+                <select name="product">
+                  <option value="">请选择</option>
+                  <option>灵耕® 智慧农业监测</option>
+                  <option>光合® 光伏管理平台</option>
+                  <option>碳衡® 企业碳管理 SaaS</option>
+                  <option>定制化解决方案</option>
+                </select>
+              </div>
+            </div>
+            <div class="field">
+              <label>留言内容 *</label>
+              <textarea name="message" required minlength="10" placeholder="请描述您的需求，我们将尽快与您联系..."></textarea>
+            </div>
+            <button class="btn btn-primary" type="submit" data-magnetic="0.15">发送消息
+              <svg viewBox="0 0 16 16" fill="none"><path d="M2 8h11m-4-4.5L13.5 8 9 12.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+            <p style="font-size:.72rem;color:var(--ink-3);line-height:1.7">提交即表示同意我们通过上述联系方式与您沟通。我们承诺不向第三方透露您的信息。</p>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- 合作伙伴：静态展示名单（仅文字排版，不代表实际合同关系证明） -->
+    <div class="partner-strip" id="partner" data-reveal="scale">
+      <h3>合作伙伴</h3>
+      <p class="ps">与行业领先企业共同推动绿色数字化转型</p>
+      <div class="logos">
+        <span>HUAWEI CLOUD</span>
+        <span>ALIBABA</span>
+        <span>ZTE</span>
+        <span>SIEMENS</span>
+        <span>STATE GRID</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 页脚：四栏链接 + 品牌大字 + 备案信息 -->
+  <footer class="footer">
+    <div class="footer-grid">
+      <div data-reveal>
+        <a class="brand" href="index.html"><svg class="brand-mark" viewBox="0 0 40 40" fill="none"><rect x="9" y="9" width="22" height="22" rx="5" transform="rotate(45 20 20)" stroke="#2dd87a" stroke-width="1.5"/><path d="M20 11c-4.4 4.4-6.6 8-6.6 11.2a6.6 6.6 0 0 0 13.2 0C26.6 19 24.4 15.4 20 11Z" fill="rgba(45,216,122,.22)" stroke="#7af0b8" stroke-width="1.2"/></svg><span class="brand-name">绿境科技<i>VERDANT GREENTECH</i></span></a>
+        <p class="footer-desc">智慧农业物联网 · 分布式光伏管理 · 企业碳管理 SaaS。</p>
+        <div class="footer-contact"><span>📞 400-888-0168</span><span>✉️ contact@verdant-greentech.com</span><span>📍 杭州市余杭区未来科技城</span></div>
+      </div>
+      <div data-reveal style="--d:.08s"><h4>PRODUCTS</h4><div class="footer-links"><a href="products.html#linggeng">灵耕® 农业监测</a><a href="products.html#guanghe">光合® 光伏平台</a><a href="products.html#tanheng">碳衡® 碳管理</a><a href="lab.html">碳足迹计算器</a></div></div>
+      <div data-reveal style="--d:.16s"><h4>COMPANY</h4><div class="footer-links"><a href="about.html">关于我们</a><a href="about.html#milestone">发展历程</a><a href="contact.html">联系我们</a><a href="contact.html#partner">合作伙伴</a></div></div>
+      <div data-reveal style="--d:.24s"><h4>SUPPORT</h4><div class="footer-links"><a href="login.html">登录</a><a href="register.html">免费注册</a><a href="profile.html">控制台</a><a href="contact.html">技术支持</a></div></div>
+    </div>
+    <div class="footer-brand-big" data-reveal="blur">VERDANT</div>
+    <div class="footer-bottom"><span>© 2019–2026 绿境科技（杭州）有限公司 · 浙ICP备2019XXXXXX号</span><span>等保三级 · ISO 27001 · 高新技术企业</span></div>
+  </footer>
+</div>
+
+<script>
+  /* ==================== 表单提交（纯静态方案） ====================
+     静态站点没有后端接口，因此这里用 mailto: 协议：
+       1. 阻止表单默认提交（否则会刷新页面并丢失输入）
+       2. 用 FormData 读取各字段，拼成人类可读的邮件正文
+       3. 拼接 mailto 链接并跳转 → 由操作系统唤起默认邮件客户端
+       4. 提示用户并清空表单
+     注意：mailto 是否成功取决于用户是否配置了邮件客户端，
+           因此不能把它当作「消息已送达」的可靠通道。
+     生产环境建议改为 Formspree / FormSubmit / 自建 API。 */
+  document.getElementById('contactForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    /* 拼装邮件内容：空值统一显示「未填 / 未选」，避免正文出现 undefined */
+    const fd = new FormData(this);
+    const body = `姓名：${fd.get('name')}\n手机：${fd.get('phone')}\n邮箱：${fd.get('email') || '未填'}\n意向产品：${fd.get('product') || '未选'}\n\n留言：\n${fd.get('message')}`;
+    const subject = `[官网咨询] ${fd.get('name')} - ${fd.get('product') || '咨询'}`;
+    /* encodeURIComponent 处理中文与换行，否则 mailto 链接会因非法字符失效 */
+    window.location.href = `mailto:contact@verdant-greentech.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    if (window.vToast) window.vToast('已为您打开邮件客户端，发送后我们会尽快回复。');
+    this.reset();
+  });
+</script>
+<script src="js/firebase-config.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/particles.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<!-- ==========================================================
+     注册页 register.html
+     ----------------------------------------------------------
+     页面作用：创建账号（用户名 / 邮箱 / 密码 / 确认密码 / 同意协议）
+     关键实现：
+       · 字段校验复用 js/auth.js 的 VAuth.rules，避免前后端规则不一致
+       · 密码强度条实时反馈（VAuth.strength 返回 0–5 分）
+       · 用户协议 / 隐私政策使用站内模态框，不跳转外部页面
+       · 注册成功即自动登录，并跳转 VAuth.nextAfterAuth()
+       · 未配置 Firebase 时自动降级为「演示模式」
+     ========================================================== -->
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>注册 · 绿境科技</title>
+
+<!-- 字体（与站内其它页面共用同一份 Google Fonts 请求，可命中缓存） -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=ZCOOL+XiaoWei&family=Marcellus&family=Noto+Sans+SC:wght@300;400;500&family=JetBrains+Mono:wght@300;400&display=swap" rel="stylesheet">
+
+<!-- 全站样式 + 认证页样式（浮动标签/强度条/弹窗/成功动画） -->
+<link rel="stylesheet" href="css/main.css">
+<link rel="stylesheet" href="css/auth.css">
+</head>
+
+<!-- data-page="register"    → 导航无对应项，不高亮
+     data-particles="network" → 注册页用「网络连线」粒子，暗示接入与连接 -->
+<body data-page="register" data-particles="network">
+
+<!-- 顶部导航（全站共用结构） -->
+<header class="nav" id="nav">
+  <a class="brand" href="index.html"><svg class="brand-mark" viewBox="0 0 40 40" fill="none"><rect x="9" y="9" width="22" height="22" rx="5" transform="rotate(45 20 20)" stroke="#2dd87a" stroke-width="1.5"/><path d="M20 11c-4.4 4.4-6.6 8-6.6 11.2a6.6 6.6 0 0 0 13.2 0C26.6 19 24.4 15.4 20 11Z" fill="rgba(45,216,122,.22)" stroke="#7af0b8" stroke-width="1.2"/><path d="M20 14.5V24" stroke="#7af0b8" stroke-width="1.1" stroke-linecap="round"/></svg><span class="brand-name">绿境科技<i>VERDANT GREENTECH</i></span></a>
+  <nav class="nav-links">
+    <a href="index.html" data-nav="home">首页</a>
+    <a href="products.html" data-nav="products">产品方案</a>
+    <a href="lab.html" data-nav="lab">碳计算器</a>
+    <a href="about.html" data-nav="about">关于我们</a>
+    <a href="contact.html" data-nav="contact">联系我们</a>
+  </nav>
+  <div class="nav-right">
+    <div class="nav-auth" id="authArea"></div>
+    <button class="nav-burger" id="burger" aria-label="打开菜单" aria-expanded="false"><span></span><span></span><span></span></button>
+  </div>
+  <div class="mobile-menu" id="mobileMenu">
+    <a href="index.html">首页<em>HOME</em></a><a href="products.html">产品<em>PRODUCTS</em></a><a href="lab.html">碳计算器<em>CARBON</em></a><a href="about.html">关于<em>ABOUT</em></a><a href="contact.html">联系<em>CONTACT</em></a>
+  </div>
+</header>
+
+<main class="auth-shell">
+
+  <!-- ==================== 左侧：品牌与注册权益 ==================== -->
+  <section class="auth-side">
+    <!-- 装饰性旋转环（aria-hidden，读屏忽略） -->
+    <svg class="ring" viewBox="0 0 520 520" fill="none" aria-hidden="true">
+      <g class="a"><circle cx="260" cy="260" r="240" stroke="rgba(122,240,184,.15)" stroke-width="1" stroke-dasharray="4 12"/><circle cx="260" cy="260" r="190" stroke="rgba(45,216,122,.2)" stroke-width="1"/></g>
+      <g class="b"><ellipse cx="260" cy="260" rx="160" ry="58" stroke="rgba(81,216,200,.3)" stroke-width="1"/><ellipse cx="260" cy="260" rx="58" ry="160" stroke="rgba(45,216,122,.25)" stroke-width="1" stroke-dasharray="2 8"/></g>
+      <g><path d="M260 160c-46 46-70 82-70 114a70 70 0 0 0 140 0c0-32-24-68-70-114Z" fill="rgba(45,216,122,.08)" stroke="#2dd87a" stroke-width="1.5"/><path d="M260 180v130M260 240l36-26M260 275l-34-24M260 305l28-20" stroke="#7af0b8" stroke-width="1.3" stroke-linecap="round"/></g>
+    </svg>
+
+    <div class="auth-brand" data-hero-fade style="--d:.8s">
+      <svg viewBox="0 0 40 40" fill="none"><rect x="9" y="9" width="22" height="22" rx="5" transform="rotate(45 20 20)" stroke="#2dd87a" stroke-width="1.5"/><path d="M20 11c-4.4 4.4-6.6 8-6.6 11.2a6.6 6.6 0 0 0 13.2 0C26.6 19 24.4 15.4 20 11Z" fill="rgba(45,216,122,.22)" stroke="#7af0b8" stroke-width="1.2"/></svg>
+      <div><b>绿境科技</b><i>VERDANT GREENTECH</i></div>
+    </div>
+
+    <h1 data-hero-fade style="--d:1.1s" class="split hero-split">开启您的<br><span class="hl">绿色数字之旅</span></h1>
+    <p class="sub" data-hero-fade style="--d:1.35s">免费注册，30 天无理由退款。专属顾问 1 对 1 对接，助您快速落地。</p>
+
+    <!-- 注册权益（逐条延迟入场） -->
+    <div class="auth-features">
+      <div class="auth-feature" data-hero-fade style="--d:1.55s"><i>🎁</i><span>新用户赠送 30 天全功能试用</span></div>
+      <div class="auth-feature" data-hero-fade style="--d:1.7s"><i>📊</i><span>免费使用碳足迹计算器与数据看板</span></div>
+      <div class="auth-feature" data-hero-fade style="--d:1.85s"><i>💬</i><span>7×12 小时专属顾问支持</span></div>
+    </div>
+  </section>
+
+  <!-- ==================== 右侧：注册表单 ==================== -->
+  <section class="auth-form-side">
+    <div class="auth-form-wrap" data-hero-fade style="--d:1.2s">
+      <p class="crumb"><a href="index.html">首页</a> / REGISTER</p>
+      <h2 class="split hero-split" style="font-size:1.8rem">免费<span class="hl">注册</span></h2>
+
+      <!-- 模式提示：由脚本依据 VAuth.isDemo() 动态写入 -->
+      <p class="hint" id="modeHint">正在初始化认证服务…</p>
+
+      <!-- novalidate：禁用原生校验，统一使用自定义错误提示 -->
+      <form id="regForm" novalidate>
+        <!-- 用户名：2–20 位，支持中文/字母/数字/下划线（规则见 auth.js） -->
+        <div class="f-field">
+          <input type="text" id="username" placeholder=" " autocomplete="nickname" required>
+          <label for="username">用户名</label>
+          <span class="f-ic">👤</span>
+          <div class="err-msg" data-err="username"></div>
+        </div>
+
+        <!-- 邮箱：作为登录账号，注册后不可更改（Firebase 限制） -->
+        <div class="f-field">
+          <input type="email" id="email" placeholder=" " autocomplete="email" required>
+          <label for="email">邮箱</label>
+          <span class="f-ic">✉</span>
+          <div class="err-msg" data-err="email"></div>
+        </div>
+
+        <!-- 密码：8–64 位且必须含字母与数字；下方为 5 格强度条 -->
+        <div class="f-field">
+          <input type="password" id="password" placeholder=" " autocomplete="new-password" required>
+          <label for="password">密码</label>
+          <button type="button" class="toggle-pw" data-toggle="#password" aria-label="显示/隐藏密码">👁</button>
+          <div class="strength" id="strength"><i></i><i></i><i></i><i></i><i></i></div>
+          <div class="strength-label" id="strengthLabel">请输入密码</div>
+          <div class="err-msg" data-err="password"></div>
+        </div>
+
+        <!-- 确认密码：必须与上方一致 -->
+        <div class="f-field">
+          <input type="password" id="confirm" placeholder=" " autocomplete="new-password" required>
+          <label for="confirm">确认密码</label>
+          <button type="button" class="toggle-pw" data-toggle="#confirm" aria-label="显示/隐藏密码">👁</button>
+          <div class="err-msg" data-err="confirm"></div>
+        </div>
+
+        <!-- 协议勾选：点击《用户协议》《隐私政策》弹出站内模态框 -->
+        <div class="agree">
+          <input type="checkbox" id="agree" required>
+          <label for="agree">我已阅读并同意 <a href="#" id="showTerms">《用户协议》</a> 与 <a href="#" id="showPrivacy">《隐私政策》</a></label>
+        </div>
+        <div class="err-msg" data-err="agree"></div>
+
+        <button type="submit" class="btn btn-primary f-submit" id="submitBtn" data-magnetic="0.15">注册账号</button>
+      </form>
+
+      <p class="f-switch">已有账号？<a href="login.html">立即登录</a></p>
+    </div>
+  </section>
+</main>
+
+<!-- ==================== 注册成功遮罩（与登录页一致） ==================== -->
+<div class="success-overlay" id="successOverlay">
+  <div class="success-box">
+    <svg class="success-svg" viewBox="0 0 110 110"><circle cx="55" cy="55" r="52"/><path d="M35 56l14 14 26-28"/></svg>
+    <h3>注册成功</h3>
+    <p>正在跳转控制台…</p>
+  </div>
+</div>
+
+<!-- ==================== 用户协议 / 隐私政策 模态框 ====================
+     结构与内容分离：标题与正文由脚本按 key（terms/privacy）填充，
+     同一个弹窗复用两种文档，避免重复 DOM -->
+<div class="modal-mask" id="modalMask">
+  <div class="modal">
+    <div class="modal-head">
+      <h3 id="modalTitle">用户协议</h3>
+      <button id="modalClose" aria-label="关闭">×</button>
+    </div>
+    <!-- 正文由脚本写入；内部滚动，避免长文撑破弹窗 -->
+    <div class="modal-body" id="modalBody"></div>
+    <div class="modal-foot">
+      <!-- 不同意：关闭并取消勾选；同意：关闭并自动勾选 -->
+      <button class="btn btn-ghost btn-sm" id="modalDisagree">不同意</button>
+      <button class="btn btn-primary btn-sm" id="modalAgree">我已阅读并同意</button>
+    </div>
+  </div>
+</div>
+
+<!-- 脚本加载顺序：配置 → Firebase SDK → 认证引擎 → 粒子 → 交互引擎 → 本页逻辑 -->
+<script src="js/firebase-config.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/particles.js"></script>
+<script src="js/main.js"></script>
+<script>
+  /* ---------------- 工具：按字段名写入/清除错误提示 ---------------- */
+  function setErr(field, msg) {
+    const el = document.querySelector(`[data-err="${field}"]`);
+    if (el) el.textContent = msg || '';
+  }
+
+  /* ---------------- 初始化模式提示 ----------------
+     whenReady 确保在 Firebase 异步初始化完成后判断，避免误报“演示模式” */
+  VAuth.whenReady(() => {
+    document.getElementById('modeHint').innerHTML = VAuth.isDemo()
+      ? '演示模式：账号仅保存在本机浏览器，正式环境请配置 Firebase。'
+      : '云端认证已就绪，注册后可使用邮箱登录。';
+  });
+
+  /* ---------------- 密码显隐切换（两个密码框共用同一逻辑） ---------------- */
+  document.querySelectorAll('.toggle-pw').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const inp = document.querySelector(btn.dataset.toggle);
+      inp.type = inp.type === 'password' ? 'text' : 'password';
+      btn.textContent = inp.type === 'password' ? '👁' : '🙈';
+    });
+  });
+
+  /* ---------------- 密码强度实时反馈 ----------------
+     VAuth.strength 返回 0–5：
+       0 空 / 1 弱 / 2–3 中等 / 4–5 强
+     对应给前 r 个格子着色：红（弱）/ 金（中）/ 绿（强） */
+  const pw = document.getElementById('password');
+  const bars = document.querySelectorAll('#strength i');
+  const sl = document.getElementById('strengthLabel');
+  const strengthLabels = ['请输入密码', '弱', '较弱', '中等', '较强', '强'];
+  pw.addEventListener('input', () => {
+    const r = VAuth.strength(pw.value);
+    bars.forEach((b, i) => {
+      b.className = '';                     // 先清空颜色类
+      if (i < r) b.classList.add(r <= 1 ? 'weak' : r <= 3 ? 'mid' : 'on');
+    });
+    sl.textContent = strengthLabels[r] || '请输入密码';
+    sl.style.color = r <= 1 ? '#ff7676' : r <= 3 ? 'var(--gold)' : 'var(--g1)';
+  });
+
+  /* ---------------- 协议文档内容（terms / privacy） ---------------- */
+  const docs = {
+    terms: {
+      title: '用户协议',
+      body: `<p><b>一、服务说明</b><br>绿境科技为注册用户提供智慧农业监测、光伏管理与碳管理相关的软件服务。本协议适用于您对本网站及相关服务的使用。</p>
+             <p><b>二、账号责任</b><br>您应妥善保管账号与密码，因账号泄露导致的损失由您自行承担。请勿将账号转借他人。</p>
+             <p><b>三、数据使用</b><br>您上传的业务数据归您所有。我们仅在为您提供服务的必要范围内处理您的数据，不会向第三方出售。</p>
+             <p><b>四、免责声明</b><br>本平台提供的碳核算、灌溉建议等结果基于公开模型与您输入的数据，仅供参考，不构成专业决策建议。</p>
+             <p><b>五、协议变更</b><br>我们可能不时更新本协议，更新后将在站内公告。继续使用服务即视为您同意更新后的协议。</p>`
+    },
+    privacy: {
+      title: '隐私政策',
+      body: `<p><b>一、收集范围</b><br>我们仅收集为提供服务所必需的信息，包括您的用户名、邮箱、手机号以及您主动录入的业务数据。</p>
+             <p><b>二、存储与安全</b><br>数据存储于国内合规云服务商，通过等保三级认证。我们采用加密传输与存储，防止数据泄露。</p>
+             <p><b>三、数据共享</b><br>未经您同意，我们不会向第三方共享您的个人信息，法律法规要求的除外。</p>
+             <p><b>四、您的权利</b><br>您有权访问、更正、删除您的个人信息，可通过控制台或联系客服行使相关权利。</p>
+             <p><b>五、联系我们</b><br>如有隐私相关问题，请发送邮件至 contact@verdant-greentech.com。</p>`
+    }
+  };
+
+  /* ---------------- 打开模态框：按 key 填充标题与正文 ---------------- */
+  function openModal(key) {
+    const d = docs[key];
+    document.getElementById('modalTitle').textContent = d.title;
+    document.getElementById('modalBody').innerHTML = d.body;
+    document.getElementById('modalMask').classList.add('show');
+  }
+
+  /* ---------------- 协议链接与弹窗按钮绑定 ----------------
+     preventDefault 阻止 href="#" 造成的页面回到顶部 */
+  document.getElementById('showTerms').addEventListener('click', e => { e.preventDefault(); openModal('terms'); });
+  document.getElementById('showPrivacy').addEventListener('click', e => { e.preventDefault(); openModal('privacy'); });
+  document.getElementById('modalClose').addEventListener('click', () => document.getElementById('modalMask').classList.remove('show'));
+
+  // 不同意：取消勾选（保持用户明确拒绝的状态）
+  document.getElementById('modalDisagree').addEventListener('click', () => {
+    document.getElementById('agree').checked = false;
+    document.getElementById('modalMask').classList.remove('show');
+  });
+  // 同意：自动勾选并清除协议错误提示
+  document.getElementById('modalAgree').addEventListener('click', () => {
+    document.getElementById('agree').checked = true;
+    setErr('agree');
+    document.getElementById('modalMask').classList.remove('show');
+  });
+
+  /* ---------------- 提交注册 ----------------
+     顺序：清空错误 → 协议校验 → 字段规则校验（复用 VAuth.rules）
+           → 禁用按钮 → VAuth.register() → 失败回显 / 成功跳转 */
+  document.getElementById('regForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    ['username','email','password','confirm','agree'].forEach(f => setErr(f));
+
+    // 协议必须先勾选，否则不进入字段校验（避免用户填完才发现无法提交）
+    const agree = document.getElementById('agree').checked;
+    if (!agree) return setErr('agree', '请先阅读并同意用户协议与隐私政策');
+
+    const data = {
+      username: document.getElementById('username').value.trim(),
+      email: document.getElementById('email').value.trim(),
+      password: document.getElementById('password').value,
+      confirm: document.getElementById('confirm').value
+    };
+
+    // 统一调用 auth.js 的规则，保证与登录/后端判断一致
+    const errs = {
+      username: VAuth.rules.username(data.username),
+      email: VAuth.rules.email(data.email),
+      password: VAuth.rules.password(data.password),
+      confirm: VAuth.rules.confirm(data.confirm, data.password)
+    };
+    // 取第一个非空错误，逐字段提示（符合用户从上到下填写的顺序）
+    const firstErr = Object.keys(errs).find(k => errs[k]);
+    if (firstErr) return setErr(firstErr, errs[firstErr]);
+
+    const btn = document.getElementById('submitBtn');
+    btn.disabled = true; btn.textContent = '注册中…';
+
+    // register 内部已自动登录，成功后直接进入控制台
+    const res = await VAuth.register(data);
+    if (!res.ok) {
+      const f = Object.keys(res.errors)[0];
+      setErr(f, res.errors[f]);
+      btn.disabled = false; btn.textContent = '注册账号';
+      return;
+    }
+
+    // 成功：播放对勾动画，900ms 后跳转（与 CSS 动画时长对齐）
+    document.getElementById('successOverlay').classList.add('show');
+    setTimeout(() => { window.location.href = VAuth.nextAfterAuth(); }, 900);
+  });
+</script>
+</body>
+</html>
